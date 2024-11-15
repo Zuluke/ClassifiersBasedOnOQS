@@ -15,6 +15,7 @@ from toqito import state_props
 
 import qutip
 
+from scipy.stats import unitary_group
 from scipy.linalg import expm as expMatrix
 import scipy.linalg
 from sympy.physics.quantum.dagger import Dagger
@@ -93,8 +94,11 @@ def get_negativity(rho, dim):
     return state_props.negativity(rho, dim)
 
 def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,folder=None,N_qubits_tgt=None,printar_cirq=False):
+    
+    data=normalize_model(data, model=model)
+
     if model=='IQC':
-        X_new=list(normalize_model(data, model=model))
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
@@ -171,7 +175,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
     
     elif model=='IQC_AIL':
-        X_new=list(normalize_model(data, model=model))
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
@@ -250,7 +254,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         if N_qubits_tgt:
             N_qubits_env-=N_qubits_tgt
 
-        X_new=list(normalize_model(data, model=model))
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits_env) - N_features):
                 w=np.append(w,0)
@@ -326,7 +330,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         
     elif model=='IQCNDsE_wx': # IQC Non Diagonal sigmaE: sE=w.T@x
         
-        X_new=list(normalize_model(data, model=model))
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
@@ -403,26 +407,17 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
         
     elif model=='IQCNDsE_Dx': # IQC Non Diagonal sigmaE: x elements occupy the diagonal of sigmaE
-        sigmaE=np.zeros(N_features)
-        X_new=list(normalize_model(data, model=model))
+
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
                 X_new=np.append(X_new,0)
-        
-            for i in range(N_features):
-                for j in range(N_features):
-                    if j==i:
-                        sigmaE[i,i]=X_new[0][i]*w[0,i]
-                    else:
-                        sigmaE[i,j]=w[0,j]
-        else:
-            for i in range(N_features):
-                for j in range(N_features):
-                    if j==i:
-                        sigmaE[i,i]=X_new[0][i]*w[0,i]
-                    else:
-                        sigmaE[i,j]=w[0,j]
+         
+        # Creating sigmaE: each row is the vector w
+        sigmaE = np.tile(w, (N_features, 1))  # Repeat w for each row of the matrix
+        # Modifying the diagonal of sigmaE by multiplying with X
+        np.fill_diagonal(sigmaE, np.diag(sigmaE) * X_new)
         
         
         # IQC
@@ -489,16 +484,16 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
     
     elif model=='IQCNDsE_xw': # IQC Non Diagonal sigmaE: sE=x.T@w  
         
-        X_new=list(normalize_model(data, model=model))
+        X_new=np.array(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
                 X_new=np.append(X_new,0)
-            X=np.array(X_new)
-            sigmaE=X.T@w
+             
+            sigmaE=X_new.T@w
         else:
-            X=np.array(X_new)
-            sigmaE=X.T@w
+             
+            sigmaE=X_new.T@w
         
 
         # IQC
@@ -568,14 +563,19 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
     elif model=='IQC_AIL_U': # IQC_AIL with arbitrary U operator  
 
         # IQC
-        X_new=list(data)
+        X_new=np.array(data)
+        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
+            for k in range(2**(N_qubits-1) - N_features):
+                w=np.append(w,0)
+                X_new=np.append(X_new,0)
+         
         qc = QuantumCircuit(N_qubits)
         qc.initialize(X_new, range(1,N_qubits)) # Inicializaçao do estado inicial. Poderia ser qualquer estado.
         qc.h(0)
 
         # Random Unitary Operator
-        if counter==0:
-            U=np.random.rand((2**N_qubits,2**N_qubits)) 
+        if counter==0: #para gerar
+            U = np.matrix(unitary_group.rvs(2**N_qubits)) # If N_features = 2**m, this does the sames as U=np.matrix(unitary_group.rvs(2*N_features))
             '''
             Here, we may obtain an operator that acts in more qubits than the necessary (eq. ). Thus, we would need to 
             enlarge features vector to obtain same dimensionality
@@ -626,25 +626,16 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
 
     elif model=='IQC_U_Dx': # IQC with features vector embedded in U operator
         # IQC
-        X_new=list(data)
+        X_new=np.array(data)
         qc = QuantumCircuit(N_qubits)
         qc.h(range(0,N_qubits)) # State Initialization
 
         # Random Unitary Operator
-        U=np.random.rand(2**N_qubits,2**N_qubits)
+        U = np.matrix(unitary_group.rvs(2**N_qubits))
         
-        cont=0
-        for i in range(2**N_qubits):
-            
-            if i<(2**N_qubits//2):
-                cont=i
-                for j in range(2**N_qubits):
-                    if j==i:
-                        U[i,i]=X_new[0][cont]
-            else:
-                for j in range(2**N_qubits):
-                    if j==i:
-                        U[i,i]=X_new[0][cont]
+        # Applying X to the diagonal of U
+        U[:N_features, :N_features] *= np.diag(X_new)  # Multiply the top-left diagonal block
+        U[N_features:, N_features:] *= np.diag(X_new)  # Multiply the bottom-right diagonal block
     
         qc.unitary(U,qubits)
         if counter==0:

@@ -1,7 +1,7 @@
 # IQCClassifier
 import numpy as np
 from scipy.linalg import expm as expMatrix
-from sympy.physics.quantum.dagger import Dagger
+from scipy.stats import unitary_group
 from sympy import Matrix
 import math
 from sklearn.impute import SimpleImputer

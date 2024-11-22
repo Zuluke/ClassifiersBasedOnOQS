@@ -33,13 +33,15 @@ colors = ['forestgreen','darkorange','dodgerblue','deeppink' ]
 
 """
 
-Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.
+Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.
 
 """
+def av_qc():
+    print("Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")
 
 def normalize_model(data, model=None, normalize_col=True, normalize_lin=False):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
     elif model=='IQC':
         if normalize_col:
             scaler = MinMaxScaler() #Normalize the column between [0,1]
@@ -249,7 +251,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         
         return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
         
-    elif model=='IQCEsQ': # IQC Expanding sigmaQ
+    elif model=='IQCpQ': # IQC Expanding psiQ
         N_qubits_env=N_qubits
         if N_qubits_tgt:
             N_qubits_env-=N_qubits_tgt
@@ -326,7 +328,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(rho_cog)
 
         
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
+        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2**N_qubits_tgt, N_features])
         
     elif model=='IQCNDsE_wx': # IQC Non Diagonal sigmaE: sE=w.T@x
         
@@ -335,10 +337,10 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
                 X_new=np.append(X_new,0)
-            w=w.T
+            w=np.matrix(w)
             sigmaE=w.T@X_new
         else:
-            w=w.T
+            w=np.matrix(w)
             sigmaE=w.T@X_new
         
         
@@ -489,10 +491,10 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
                 X_new=np.append(X_new,0)
-             
+            X_new=np.matrix(X_new)
             sigmaE=X_new.T@w
         else:
-             
+            X_new=np.matrix(X_new)
             sigmaE=X_new.T@w
         
 
@@ -624,70 +626,14 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         
         return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
 
-    elif model=='IQC_RU_Dx': # IQC with features vector embedded in U operator
-        # IQC
-        X_new=np.array(data)
-        qc = QuantumCircuit(N_qubits)
-        qc.h(range(0,N_qubits)) # State Initialization
-
-        # Random Unitary Operator
-        U = np.matrix(unitary_group.rvs(2**N_qubits))
-        
-        # Applying X to the diagonal of U
-        U[:N_features, :N_features] *= np.diag(X_new)  # Multiply the top-left diagonal block
-        U[N_features:, N_features:] *= np.diag(X_new)  # Multiply the bottom-right diagonal block
-    
-        qc.unitary(U,qubits)
-        if counter==0:
-            qc.draw("mpl", filename=folder+f'/mpl_complete_U_NF{N_features}_{model}.svg')
-        if printar_cirq==True:
-            display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-        #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
-
-        gate_val = 0
-        u3_dir = {}
-        for i, instruction in enumerate(tqc.data):
-            if instruction.operation.name == 'u3':
-                u3_dir['u3_'+str(gate_val)] = {'qubit':instruction.qubits[0], 'params': instruction.operation.params}
-                gate_val +=1
-                
-        if printar_cirq and dict(tqc.count_ops())['u3']<=50:
-            print(u3_dir)
-            print()
-
-        
-        u3_params = []
-        for i in range(len(u3_dir)):
-            u3_params.append(u3_dir[f'u3_{i}']['params'])
-
-        if dict(tqc.count_ops())['u3']<=50 and contador==0:
-            tqc.draw("mpl", filename=folder+f'/mpl_transpiled{contador}_NF{N_features}_{model}.svg')
-
-        if printar_cirq==True and dict(tqc.count_ops())['u3']<=50:
-            print(dict(tqc.count_ops()))
-            display(tqc.draw('mpl')) #displat(qc.draw('mpl', filename='./mpl_transpile.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-
-        # Mostrando o vetor de estado 
-        sv = Statevector(qc)
-        rho=np.array(DensityMatrix(sv))
-        rho_cog = partial_trace(sv, qubits[1:])
-        if printar_cirq==True:
-            print(rho_cog)
-
-        
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
-
     elif model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
 
 # Define a function to check and crop possible lists with different sizes
-def dividir_por_tamanho(lista):
+def size_divide(lista):
     # Dicionário para armazenar sublistas agrupadas pelo tamanho
     grupos = {}
     
@@ -701,7 +647,7 @@ def dividir_por_tamanho(lista):
 
 def esfera_bloch(X,weights,qubits,N_qubits,N_features,counter,model=None,folder=None,printar_esf=False,norma=None):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
@@ -737,7 +683,7 @@ def esfera_bloch(X,weights,qubits,N_qubits,N_features,counter,model=None,folder=
 def plot_histogram(u3_list,neg_list,N_features,folder=None,norma=None, model=None):
     
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
@@ -759,7 +705,7 @@ def plot_histogram(u3_list,neg_list,N_features,folder=None,norma=None, model=Non
             bin_sizes_list.append(to_binning[1][i]//100)
 
     
-    lista=dividir_por_tamanho(u3_list) # lista[G size index][tqc index][gate index][params] --> lista[int(np.unique[j])][:][i][0 or 1 or 2]
+    lista=size_divide(u3_list) # lista[G size index][tqc index][gate index][params] --> lista[int(np.unique[j])][:][i][0 or 1 or 2]
     neg_list=np.array(neg_list)
 
     for j in range(len(unique_G_list)):
@@ -797,8 +743,8 @@ def plot_negativity(neg_list1,N_samples,N_features,folder=None,neg_list2=None,mo
         model_title = 'IQC'
     elif model=='IQC_AIL':
         model_title = 'IQC_AIL'
-    elif model=='IQCEsQ': # IQC Expanding sigmaQ
-        model_title = 'IQCEsQ'
+    elif model=='IQCpQ': # IQC Expanding psiQ
+        model_title = 'IQCpQ'
     elif model=='IQCNDsE_wx': # IQC Non Diagonal sigmaE: sE=w.T@x
         model_title = 'IQCNDsE_wx'
     elif model=='IQCNDsE_Dx': # IQC Non Diagonal sigmaE: x elements occupy the diagonal of sigmaE
@@ -810,7 +756,7 @@ def plot_negativity(neg_list1,N_samples,N_features,folder=None,neg_list2=None,mo
     elif model=='IQC_RU_Dx': # IQC with features vector embedded in U operator
         model_title = 'IQC_RU_Dx'
     elif model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
 
     num_neg=[]
     for i in range(N_samples):
@@ -844,7 +790,7 @@ def statistical_qc(N_samples,N_features,model=None,folder=None,normalization=Fal
     if folder==None:
         raise Exception("No folder selected.")
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCEsQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', 'IQC_AIL_RU', and 'IQC_RU_Dx'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
     
     counter=0
     X_df=np.random.rand(N_samples,N_features)
@@ -853,13 +799,13 @@ def statistical_qc(N_samples,N_features,model=None,folder=None,normalization=Fal
     qubits=[i for i in range(N_qubits)]
 
     if normalization:
-        X_df_coluna=normalize_model(X_df, normalize_col=True, normalize_lin=False)
-        X_df_linha=normalize_model(X_df,normalize_col=False,normalize_lin=True)
+        X_df_coluna=normalize_model(X_df, normalize_col=True, normalize_lin=False,model=model)
+        X_df_linha=normalize_model(X_df,normalize_col=False,normalize_lin=True,model=model)
         u3_col,neg_col=esfera_bloch(X_df_coluna,w_df,qubits,N_qubits,N_features,counter,folder,norma='coluna',model=model)
         u3_lin,neg_lin=esfera_bloch(X_df_linha,w_df,qubits,N_qubits,N_features,counter,folder,norma='linha',model=model)
         return u3_col, u3_lin, neg_col, neg_lin
     else:
-        X_df_iqc_ail=normalize_model(X_df,normalize_col=False,normalize_lin=True)
+        X_df_iqc_ail=normalize_model(X_df,normalize_col=False,normalize_lin=True,model=model)
         u3_lista,neg_lista=esfera_bloch(X_df_iqc_ail,w_df,qubits,N_qubits,N_features,counter,folder,model=model)
         return u3_lista, neg_lista
     

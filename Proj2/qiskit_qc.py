@@ -31,18 +31,20 @@ plt.rcParams.update({'figure.autolayout': True})
 labels=[r'$\theta$',r'$\phi$',r'$\lambda$']
 colors = ['forestgreen','darkorange','dodgerblue','deeppink' ]
 
+rng=np.random.default_rng(1)
+
 """
 
-Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.
+Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and'IQCNDsE_xw'.
 
 """
 def av_qc():
-    print("Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")
+    print("Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE_xw'.")
 
 # Normalize the dataset according to the referred model
 def normalize_model(data, model=None, normalize_col=True, normalize_lin=False):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', 'IQCNDsE_Dx', and'IQCNDsE_xw'.")
     elif model=='IQC':
         if normalize_col:
             scaler = MinMaxScaler() #Normalize the column between [0,1]
@@ -133,7 +135,7 @@ def get_negativity(rho, dim):
     return state_props.negativity(rho, dim)
 
 # Builds up the model to esfera_bloch function
-def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,folder=None,N_qubits_tgt=None,printar_cirq=False):
+def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,folder=None,N_qubits_tgt=None,printar_cirq=False,N_layers=None):
 
     if model=='IQC':
         X_new=np.array(data)
@@ -210,7 +212,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(rho_cog)
 
         
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
+        return qc,u3_params, get_negativity(rho,[2, len(X_new)])
     
     elif model=='IQC_AIL':
         X_new=np.array(data)
@@ -224,7 +226,6 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
        
 
         # IQC_AIL
-
         qc = QuantumCircuit(N_qubits)
         qc.initialize(X_new, range(1,N_qubits))# Inicializaçao do estado inicial. Poderia ser qualquer estado.
         qc.h(0)
@@ -285,7 +286,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(rho_cog)
 
         
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
+        return qc,u3_params, get_negativity(rho,[2, N_features])
         
     elif model=='IQCpQ': # IQC Expanding psiQ
         N_qubits_env=N_qubits
@@ -362,163 +363,8 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         matriz_pauli_y=np.array([[0,-1j],[1j,0]]) # Matriz de Pauli y
         matriz_pauli_z=np.array([[1,0],[0,-1]]) # Matriz de Pauli z
 
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2**N_qubits_tgt, N_features])
-        
-    elif model=='IQCNDsE_wx': # IQC Non Diagonal sigmaE: sE=w.T@x
-        
-        X_new=np.matrix(data)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-1) - N_features):
-                w=np.append(w,0)
-                X_new=np.append(X_new,0)
-            X_new=np.matrix(X_new)
-            w=np.matrix(w)
-            sigmaE=w.T@X_new
-        else:
-            w=np.matrix(w)
-            sigmaE=w.T@X_new
-        
-        
-        # IQC
-
-        qc = QuantumCircuit(N_qubits)
-        qc.h(range(0,N_qubits))
-
-
-
-        #Montando os sigmas
-
-        matriz_pauli_x=np.array([[0,1],[1,0]]) # Matriz de Pauli x
-        matriz_pauli_y=np.array([[0,-1j],[1j,0]]) # Matriz de Pauli y
-        matriz_pauli_z=np.array([[1,0],[0,-1]]) # Matriz de Pauli z
-
-        sigmaQ=matriz_pauli_x+matriz_pauli_y+matriz_pauli_z
-
-        
-
-        #Operador Unitário
-        U=np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
-
-        # qubitstarget = [i for i in range(Ntarget)] - > Desnecessário agora, mas interessante para fazer a generalização
-        qc.unitary(U,qubits)
-        if counter==0:
-            qc.draw("mpl", filename=folder+f'/mpl_complete_U_NF{N_features}_{model}.svg')
-        if printar_cirq==True:
-            display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-        #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
-
-        gate_val = 0
-        u3_dir = {}
-        for i, instruction in enumerate(tqc.data):
-            if instruction.operation.name == 'u3':
-                u3_dir['u3_'+str(gate_val)] = {'qubit':instruction.qubits[0], 'params': instruction.operation.params}
-                gate_val +=1
-                
-        if printar_cirq and dict(tqc.count_ops())['u3']<=50:
-            print(u3_dir)
-            print()
-
-        
-        u3_params = []
-        for i in range(len(u3_dir)):
-            u3_params.append(u3_dir[f'u3_{i}']['params'])
-
-        if dict(tqc.count_ops())['u3']<=50 and contador==0:
-            tqc.draw("mpl", filename=folder+f'/mpl_transpiled{contador}_NF{N_features}_{model}.svg')
-
-        if printar_cirq==True and dict(tqc.count_ops())['u3']<=50:
-            print(dict(tqc.count_ops()))
-            display(tqc.draw('mpl')) #displat(qc.draw('mpl', filename='./mpl_transpile.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-
-        # Mostrando o vetor de estado 
-        sv = Statevector(qc)
-        rho=np.array(DensityMatrix(sv))
-        rho_cog = partial_trace(sv, qubits[1:])
-        if printar_cirq==True:
-            print(rho_cog)
-
-        
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
-        
-    elif model=='IQCNDsE_Dx': # IQC Non Diagonal sigmaE: x elements occupy the diagonal of sigmaE
-
-        X_new=np.array(data)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-1) - N_features):
-                w=np.append(w,0)
-                X_new=np.append(X_new,0)
-         
-        # Creating sigmaE: each row is the vector w
-        sigmaE = np.tile(w, (N_features, 1))  # Repeat w for each row of the matrix
-        # Modifying the diagonal of sigmaE by multiplying with X
-        np.fill_diagonal(sigmaE, np.diag(sigmaE) * X_new)
-        
-        
-        # IQC
-
-        qc = QuantumCircuit(N_qubits)
-        qc.h(range(0,N_qubits))
-
-        #Montando os sigmas
-
-        matriz_pauli_x=np.array([[0,1],[1,0]]) # Matriz de Pauli x
-        matriz_pauli_y=np.array([[0,-1j],[1j,0]]) # Matriz de Pauli y
-        matriz_pauli_z=np.array([[1,0],[0,-1]]) # Matriz de Pauli z
-
-        sigmaQ=matriz_pauli_x+matriz_pauli_y+matriz_pauli_z
-
-        
-
-        #Operador Unitário
-        U=np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
-
-        # qubitstarget = [i for i in range(Ntarget)] - > Desnecessário agora, mas interessante para fazer a generalização
-        qc.unitary(U,qubits)
-        if counter==0:
-            qc.draw("mpl", filename=folder+f'/mpl_complete_U_NF{N_features}_{model}.svg')
-        if printar_cirq==True:
-            display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-        #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
-
-        gate_val = 0
-        u3_dir = {}
-        for i, instruction in enumerate(tqc.data):
-            if instruction.operation.name == 'u3':
-                u3_dir['u3_'+str(gate_val)] = {'qubit':instruction.qubits[0], 'params': instruction.operation.params}
-                gate_val +=1
-                
-        if printar_cirq and dict(tqc.count_ops())['u3']<=50:
-            print(u3_dir)
-            print()
-
-        
-        u3_params = []
-        for i in range(len(u3_dir)):
-            u3_params.append(u3_dir[f'u3_{i}']['params'])
-
-        if dict(tqc.count_ops())['u3']<=50 and contador==0:
-            tqc.draw("mpl", filename=folder+f'/mpl_transpiled{contador}_NF{N_features}_{model}.svg')
-
-        if printar_cirq==True and dict(tqc.count_ops())['u3']<=50:
-            print(dict(tqc.count_ops()))
-            display(tqc.draw('mpl')) #displat(qc.draw('mpl', filename='./mpl_transpile.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
-
-
-        # Mostrando o vetor de estado 
-        sv = Statevector(qc)
-        rho=np.array(DensityMatrix(sv))
-        rho_cog = partial_trace(sv, qubits[1:])
-        if printar_cirq==True:
-            print(rho_cog)
-
-        
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
-    
+        return qc,u3_params, get_negativity(rho,[2**N_qubits_tgt, len(X_new)])
+          
     elif model=='IQCNDsE_xw': # IQC Non Diagonal sigmaE: sE=x.T@w  
         
         X_new=np.matrix(data)
@@ -528,10 +374,12 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
                 X_new=np.append(X_new,0)
             X_new=np.matrix(X_new)
             w=np.matrix(w)
-            sigmaE=X_new.T@w
+            # Ensure sigmaE is hermitian
+            sigmaE = X_new.T @ w + (X_new.T @ w).T
         else:
-            X_new=np.matrix(X_new)
-            sigmaE=X_new.T@w
+            w=np.matrix(w)
+            # Ensure sigmaE is hermitian
+            sigmaE = X_new.T @ w + (X_new.T @ w).T
         
 
         # IQC
@@ -596,30 +444,49 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(rho_cog)
 
         
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
-        
-    elif model=='IQC_AIL_RU': # IQC_AIL with arbitrary U operator  
+        return qc,u3_params, get_negativity(rho,[2, len(X_new.T)])
 
-        # IQC
+    elif model=='IQC_Angle': # IQC with angle embedding
         X_new=np.array(data)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-1) - N_features):
-                w=np.append(w,0)
-                X_new=np.append(X_new,0)
-         
-        qc = QuantumCircuit(N_qubits)
-        qc.initialize(X_new, range(1,N_qubits)) # Inicializaçao do estado inicial. Poderia ser qualquer estado.
+        if N_layers==None:
+            raise Exception("Number of Layers is required in Angle Embedding.")
+        
+        N_QUBITS=(N_features+1) #Nqubits do circuito
+        QUBITS=[i for i in range(N_QUBITS)]
+        N_layers = N_layers
+
+        # Configura o circuito
+        qc = QuantumCircuit(N_QUBITS)
+
+        # Verifica se precisa ajustar sigmaE
+        sigmaE = np.diag(w)
+
+        # Adiciona a porta Hadamard no qubit alvo
         qc.h(0)
 
-        # Random Unitary Operator
-        if counter==0: #para gerar
-            U = np.matrix(unitary_group.rvs(2**N_qubits)) # If N_features = 2**m, this does the sames as U=np.matrix(unitary_group.rvs(2*N_features))
-            '''
-            Here, we may obtain an operator that acts in more qubits than the necessary (eq. ). Thus, we would need to 
-            enlarge features vector to obtain same dimensionality
-            '''
-    
-        qc.unitary(U,qubits)
+        # Adiciona as rotações RX e as CNOTs
+        for nl in range(N_layers):
+            for i in range(len(X_new)):
+                if i + 1 < N_QUBITS:
+                    qc.rx(X_new[i] * 2 * np.pi, i + 1)
+                    if i != 0:
+                        qc.cx(i, i + 1)
+
+        # Matriz sigmaQ
+        matriz_pauli_x = np.array([[0, 1], [1, 0]])  # Matriz de Pauli x
+        matriz_pauli_y = np.array([[0, -1j], [1j, 0]])  # Matriz de Pauli y
+        matriz_pauli_z = np.array([[1, 0], [0, -1]])  # Matriz de Pauli z
+        sigmaQ = matriz_pauli_x + matriz_pauli_y + matriz_pauli_z
+
+        # Calcula o operador unitário U
+        dim_circuit = 2 ** (N_QUBITS - 1)
+        dim_sigmaE = sigmaE.shape[0]
+        extended_sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        U = expMatrix(1j * np.kron(sigmaQ, extended_sigmaE))
+
+        # Adiciona o operador unitário ao circuito
+        qc.unitary(U, QUBITS)
+
         if counter==0:
             qc.draw("mpl", filename=folder+f'/mpl_complete_U_NF{N_features}_{model}.svg')
         if printar_cirq==True:
@@ -651,19 +518,19 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(dict(tqc.count_ops()))
             display(tqc.draw('mpl')) #displat(qc.draw('mpl', filename='./mpl_transpile.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
-
+    
         # Mostrando o vetor de estado 
         sv = Statevector(qc)
         rho=np.array(DensityMatrix(sv))
-        rho_cog = partial_trace(sv, qubits[1:])
+        rho_cog = partial_trace(sv, QUBITS[1:])
         if printar_cirq==True:
             print(rho_cog)
 
         
-        return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
+        return qc,u3_params, get_negativity(rho,[2, 2**N_features])
 
     elif model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
@@ -832,29 +699,248 @@ def plot_negativity(neg_list1,N_samples,N_features,folder=None,neg_list2=None,mo
         plt.savefig(folder+f'/Negativity_NF{N_features}_{model}.svg')
         plt.close(fig)
 
-def statistical_qc(N_samples,N_features,model=None,folder=None,normalization=False,N_qubits_tgt=None):
+def statistical_qc(N_samples,N_features,simulation_samples,model=None,folder=None,normalization=False,N_qubits_tgt=None,esfera=False,N_layers=None):
     if folder==None:
         raise Exception("No folder selected.")
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
     if N_qubits_tgt:
         N_qubits=math.ceil(np.log2(N_features)+N_qubits_tgt)
     else:
         N_qubits=math.ceil(np.log2(N_features)+1) #Nqubits do circuito
     counter=0
-    X_df=np.random.rand(N_samples,N_features)
-    w_df=np.random.rand(N_samples,N_features)
+    X_df=rng.random((N_samples,N_features))
+    w_df=rng.random((N_samples,N_features))
     
     qubits=[i for i in range(N_qubits)]
 
-    if normalization:
-        X_df_coluna=normalize_model(X_df,model=model, normalize_col=True, normalize_lin=False)
-        X_df_linha=normalize_model(X_df,model=model,normalize_col=False,normalize_lin=True)
-        u3_col,neg_col=esfera_bloch(X_df_coluna,w_df,qubits,N_qubits,N_features,counter,model=model,folder=folder,norma='coluna',N_qubits_tgt=N_qubits_tgt)
-        u3_lin,neg_lin=esfera_bloch(X_df_linha,w_df,qubits,N_qubits,N_features,counter,model=model,folder=folder,norma='linha',N_qubits_tgt=N_qubits_tgt)
-        return u3_col, u3_lin, neg_col, neg_lin
+    if esfera==True:
+        if normalization:
+            X_df_coluna=normalize_model(X_df,model=model, normalize_col=True, normalize_lin=False)
+            X_df_linha=normalize_model(X_df,model=model,normalize_col=False,normalize_lin=True)
+            u3_col,neg_col=esfera_bloch(X_df_coluna,w_df,qubits,N_qubits,N_features,counter,model=model,folder=folder,norma='coluna',N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+            u3_lin,neg_lin=esfera_bloch(X_df_linha,w_df,qubits,N_qubits,N_features,counter,model=model,folder=folder,norma='linha',N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+            return u3_col, u3_lin, neg_col, neg_lin
+        else:
+            X_df=normalize_model(X_df,model=model,normalize_col=True,normalize_lin=False)
+            u3_lista,neg_lista=esfera_bloch(X_df,w_df,qubits,N_qubits,N_features,counter=counter,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+            return u3_lista, neg_lista
     else:
         X_df=normalize_model(X_df,model=model,normalize_col=True,normalize_lin=False)
-        u3_lista,neg_lista=esfera_bloch(X_df,w_df,qubits,N_qubits,N_features,counter=counter,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt)
-        return u3_lista, neg_lista
+        u3_lista,neg_lista,express=expressibility(X=X_df,weights=w_df,qubits=qubits,N_qubits=N_qubits,N_features=N_features,simulation_samples=simulation_samples,counter=counter,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+        return u3_lista, neg_lista, express
+
+def haar_integral(num_qubits, simulation_samples, N_features=None, model=None):
+    """
+    Return the calculation of Haar Integral for a specified number of simulation_samples.
+    """
+
+    if model=='IQC_Angle':
+        N_QUBITS=(N_features+1) #Nqubits do circuito
+        N=2**N_QUBITS
+    else:
+        N = 2 ** num_qubits
     
+    randunit_density = np.zeros((N, N), dtype=complex)
+
+    zero_state = np.zeros(N, dtype=complex)
+    zero_state[0] = 1
+
+    for _ in range(simulation_samples):
+        # Generate random unitary
+        unitary = np.matrix(unitary_group.rvs(N))
+        # Apply unitary to the zero state
+        A = np.matmul(zero_state, unitary).reshape(-1, 1)
+        # Accumulate density matrix
+        randunit_density += np.kron(A, A.conj().T)
+
+    # Normalize by number of samples
+    randunit_density /= simulation_samples
+    return randunit_density
+
+# Função para calcular a integral do PQC
+def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_features, model=None, folder=None, N_qubits_tgt=None, N_layers=None):
+    """
+    Calcula a integral de um PQC com parâmetros aleatórios.
+    
+    Args:
+        N_QUBITS (int): Número de qubits no circuito.
+        circuit_model (function): Função que gera o circuito com parâmetros ajustáveis.
+        simulation_samples (int): Número de amostras para calcular a integral.
+
+    Returns:
+        np.ndarray: Matriz densidade aproximada pelo circuito.
+    """
+    randunit_density = np.zeros((2 ** N_QUBITS, 2 ** N_QUBITS), dtype=complex)
+
+    if model=='IQCpQ':
+
+        for _ in range(simulation_samples):
+            # Gere os parâmetros aleatórios
+            tx = rng.random((1,N_features))  # Parâmetros para tx
+            tw = rng.random((1,N_features))  # Parâmetros para tw
+            # Cria o circuito com os parâmetros fornecidos
+            qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+
+            # Simule o circuito para obter o vetor de estado
+            statevector = Statevector.from_instruction(transpile(qc, Aer.get_backend("statevector_simulator")))
+
+            # Reshape statevector para vetor coluna
+            U = statevector.data.reshape(-1, 1)
+
+            # Acumule a matriz densidade
+            randunit_density += np.kron(U, U.conj().T)
+
+        # Normalize pela quantidade de amostras
+        return randunit_density / simulation_samples
+    elif model=='IQC_AIL':
+
+        for _ in range(simulation_samples):
+            # Gere os parâmetros aleatórios
+            tx = rng.random((1,N_features))  # Parâmetros para tx
+            tw = rng.random((1,N_features))  # Parâmetros para tw
+            tx=normalize_model(tx,model=model,normalize_col=False,normalize_lin=True)
+
+            # Cria o circuito com os parâmetros fornecidos
+            qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=len(tx[0]),model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+
+            # Simule o circuito para obter o vetor de estado
+            statevector = Statevector.from_instruction(transpile(qc, Aer.get_backend("statevector_simulator")))
+
+            # Reshape statevector para vetor coluna
+            U = statevector.data.reshape(-1, 1)
+
+            # Acumule a matriz densidade
+            randunit_density += np.kron(U, U.conj().T)
+
+        # Normalize pela quantidade de amostras
+        return randunit_density / simulation_samples
+    elif model=='IQC_Angle':
+        N_QUBITS=(N_features+1) #Nqubits do circuito
+        QUBITS=[i for i in range(N_QUBITS)]
+        randunit_density = np.zeros((2 ** N_QUBITS, 2 ** N_QUBITS), dtype=complex)
+        for _ in range(simulation_samples):
+            # Gere os parâmetros aleatórios
+            tx = rng.random((1,N_features))  # Parâmetros para tx
+            tw = rng.random((1,N_features))  # Parâmetros para tw
+
+            # Cria o circuito com os parâmetros fornecidos
+            qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+
+            # Simule o circuito para obter o vetor de estado
+            statevector = Statevector.from_instruction(transpile(qc, Aer.get_backend("statevector_simulator")))
+
+            # Reshape statevector para vetor coluna
+            U = statevector.data.reshape(-1, 1)
+
+            # Acumule a matriz densidade
+            randunit_density += np.kron(U, U.conj().T)
+
+        # Normalize pela quantidade de amostras
+        return randunit_density / simulation_samples
+    else:
+        for _ in range(simulation_samples):
+            # Gere os parâmetros aleatórios
+            tx = rng.random((1,N_features))  # Parâmetros para tx
+            tw = rng.random((1,N_features))  # Parâmetros para tw
+
+            # Cria o circuito com os parâmetros fornecidos
+            qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+
+            # Simule o circuito para obter o vetor de estado
+            statevector = Statevector.from_instruction(transpile(qc, Aer.get_backend("statevector_simulator")))
+
+            # Reshape statevector para vetor coluna
+            U = statevector.data.reshape(-1, 1)
+
+            # Acumule a matriz densidade
+            randunit_density += np.kron(U, U.conj().T)
+
+        # Normalize pela quantidade de amostras
+        return randunit_density / simulation_samples
+
+def expressibility(X, weights, qubits, N_qubits, N_features, counter, simulation_samples, model=None, folder=None, norma=None, N_qubits_tgt=None, N_layers=None):
+    if model==None:
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+    
+    if model=='IQCpQ' and N_qubits_tgt==None:
+        raise Exception("In 'IQCpQ' model, giving 'N_qubit_tgt' is required.")
+    
+    
+    u3_params=[]
+    negativity=[]
+    for k in range(len(X)):
+        _,params,neg=circuit_model(X[k],k,weights[k], counter, qubits, N_qubits, N_features,folder=folder,model=model,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+        u3_params.append(params)
+        negativity.append(neg)
+        counter+=1
+    express=np.linalg.norm(haar_integral(N_qubits, simulation_samples, N_features=N_features, model=model) - pqc_integral_adapted(N_QUBITS=N_qubits, simulation_samples=simulation_samples,
+                                                                                counter=counter, QUBITS=qubits, N_features=N_features, model=model,
+                                                                                folder=folder, N_qubits_tgt=N_qubits_tgt, N_layers=N_layers))
+    return u3_params,negativity,express
+
+"""
+elif model=='IQC_AIL_RU': # IQC_AIL with arbitrary U operator  
+
+    # IQC
+    X_new=np.array(data)
+    if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
+        for k in range(2**(N_qubits-1) - N_features):
+            w=np.append(w,0)
+            X_new=np.append(X_new,0)
+        
+    qc = QuantumCircuit(N_qubits)
+    qc.initialize(X_new, range(1,N_qubits)) # Inicializaçao do estado inicial. Poderia ser qualquer estado.
+    qc.h(0)
+
+    # Random Unitary Operator
+    if counter==0: #para gerar
+        U = np.matrix(unitary_group.rvs(2**N_qubits)) # If N_features = 2**m, this does the sames as U=np.matrix(unitary_group.rvs(2*N_features))
+        '''
+        Here, we may obtain an operator that acts in more qubits than the necessary (eq. ). Thus, we would need to 
+        enlarge features vector to obtain same dimensionality
+        '''
+
+    qc.unitary(U,qubits)
+    if counter==0:
+        qc.draw("mpl", filename=folder+f'/mpl_complete_U_NF{N_features}_{model}.svg')
+    if printar_cirq==True:
+        display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
+
+    #qc.decompose().draw(output="mpl", style="clifford")
+    tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+
+    gate_val = 0
+    u3_dir = {}
+    for i, instruction in enumerate(tqc.data):
+        if instruction.operation.name == 'u3':
+            u3_dir['u3_'+str(gate_val)] = {'qubit':instruction.qubits[0], 'params': instruction.operation.params}
+            gate_val +=1
+            
+    if printar_cirq and dict(tqc.count_ops())['u3']<=50:
+        print(u3_dir)
+        print()
+
+    
+    u3_params = []
+    for i in range(len(u3_dir)):
+        u3_params.append(u3_dir[f'u3_{i}']['params'])
+
+    if dict(tqc.count_ops())['u3']<=50 and contador==0:
+        tqc.draw("mpl", filename=folder+f'/mpl_transpiled{contador}_NF{N_features}_{model}.svg')
+
+    if printar_cirq==True and dict(tqc.count_ops())['u3']<=50:
+        print(dict(tqc.count_ops()))
+        display(tqc.draw('mpl')) #displat(qc.draw('mpl', filename='./mpl_transpile.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
+
+
+    # Mostrando o vetor de estado 
+    sv = Statevector(qc)
+    rho=np.array(DensityMatrix(sv))
+    rho_cog = partial_trace(sv, qubits[1:])
+    if printar_cirq==True:
+        print(rho_cog)
+
+    
+    return blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z),u3_params, get_negativity(rho,[2, N_features])
+"""

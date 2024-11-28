@@ -32,19 +32,20 @@ labels=[r'$\theta$',r'$\phi$',r'$\lambda$']
 colors = ['forestgreen','darkorange','dodgerblue','deeppink' ]
 
 rng=np.random.default_rng(1)
+rng2=np.random.default_rng(42)
 
 """
 
-Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and'IQCNDsE_xw'.
+Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and'IQCNDsE'.
 
 """
 def av_qc():
-    print("Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE_xw'.")
+    print("Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE'.")
 
 # Normalize the dataset according to the referred model
 def normalize_model(data, model=None, normalize_col=True, normalize_lin=False):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', 'IQCNDsE_Dx', and'IQCNDsE_xw'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', 'IQCNDsE_Dx', and'IQCNDsE'.")
     elif model=='IQC':
         if normalize_col:
             scaler = MinMaxScaler() #Normalize the column between [0,1]
@@ -178,7 +179,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
         #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+        tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'], seed_transpiler=1)
 
         gate_val = 0
         u3_dir = {}
@@ -252,7 +253,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
         #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+        tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
 
         gate_val = 0
         u3_dir = {}
@@ -326,7 +327,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
         #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+        tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
 
         gate_val = 0
         u3_dir = {}
@@ -365,7 +366,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
 
         return qc,u3_params, get_negativity(rho,[2**N_qubits_tgt, len(X_new)])
           
-    elif model=='IQCNDsE_xw': # IQC Non Diagonal sigmaE: sE=x.T@w  
+    elif model=='IQCNDsE': # IQC Non Diagonal sigmaE: sE=X_new.T @ w + (X_new.T @ w).T  
         
         X_new=np.matrix(data)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
@@ -410,7 +411,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
         #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+        tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
 
         gate_val = 0
         u3_dir = {}
@@ -493,7 +494,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
         #qc.decompose().draw(output="mpl", style="clifford")
-        tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+        tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
 
         gate_val = 0
         u3_dir = {}
@@ -530,7 +531,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         return qc,u3_params, get_negativity(rho,[2, 2**N_features])
 
     elif model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQC_Angle', and 'IQCNDsE'.")#, and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
@@ -551,7 +552,7 @@ def size_divide(lista):
 
 def esfera_bloch(X,weights,qubits,N_qubits,N_features,counter,model=None,folder=None,printar_esf=False,norma=None,N_qubits_tgt=None):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE'.")#, and 'IQC_AIL_RU'.")
     
     if model=='IQCpQ' and N_qubits_tgt==None:
         raise Exception("In 'IQCpQ' model, giving 'N_qubit_tgt' is required.")
@@ -590,7 +591,7 @@ def esfera_bloch(X,weights,qubits,N_qubits,N_features,counter,model=None,folder=
 def plot_histogram_qc(u3_list,neg_list,N_features,folder=None,norma=None, model=None):
     
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE', and 'IQC_AIL_RU'.")
     
     if folder==None:
         raise Exception("No folder selected.")
@@ -660,14 +661,14 @@ def plot_negativity(neg_list1,N_samples,N_features,folder=None,neg_list2=None,mo
         model_title = 'IQCNDsE_wx'
     elif model=='IQCNDsE_Dx': # IQC Non Diagonal sigmaE: x elements occupy the diagonal of sigmaE
         model_title = 'IQCNDsE_Dx'
-    elif model=='IQCNDsE_xw': # IQC Non Diagonal sigmaE: sE=x.T@w  
-        model_title = 'IQCNDsE_xw'    
+    elif model=='IQCNDsE': # IQC Non Diagonal sigmaE: sE=x.T@w  
+        model_title = 'IQCNDsE'    
     elif model=='IQC_AIL_RU': # IQC_AIL with arbitrary U operator
         model_title = 'IQC_AIL_RU'
     elif model=='IQC_RU_Dx': # IQC with features vector embedded in U operator
         model_title = 'IQC_RU_Dx'
     elif model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE_xw', and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', 'IQCNDsE', and 'IQC_AIL_RU'.")
 
     num_neg=[]
     for i in range(N_samples):
@@ -703,14 +704,14 @@ def statistical_qc(N_samples,N_features,simulation_samples,model=None,folder=Non
     if folder==None:
         raise Exception("No folder selected.")
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_Dx', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_Dx', and 'IQCNDsE'.")#, and 'IQC_AIL_RU'.")
     if N_qubits_tgt:
         N_qubits=math.ceil(np.log2(N_features)+N_qubits_tgt)
     else:
         N_qubits=math.ceil(np.log2(N_features)+1) #Nqubits do circuito
     counter=0
     X_df=rng.random((N_samples,N_features))
-    w_df=rng.random((N_samples,N_features))
+    w_df=rng2.random((N_samples,N_features))
     
     qubits=[i for i in range(N_qubits)]
 
@@ -778,7 +779,7 @@ def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_featur
         for _ in range(simulation_samples):
             # Gere os parâmetros aleatórios
             tx = rng.random((1,N_features))  # Parâmetros para tx
-            tw = rng.random((1,N_features))  # Parâmetros para tw
+            tw = rng2.random((1,N_features))  # Parâmetros para tw
             # Cria o circuito com os parâmetros fornecidos
             qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
 
@@ -798,7 +799,7 @@ def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_featur
         for _ in range(simulation_samples):
             # Gere os parâmetros aleatórios
             tx = rng.random((1,N_features))  # Parâmetros para tx
-            tw = rng.random((1,N_features))  # Parâmetros para tw
+            tw = rng2.random((1,N_features))  # Parâmetros para tw
             tx=normalize_model(tx,model=model,normalize_col=False,normalize_lin=True)
 
             # Cria o circuito com os parâmetros fornecidos
@@ -822,7 +823,7 @@ def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_featur
         for _ in range(simulation_samples):
             # Gere os parâmetros aleatórios
             tx = rng.random((1,N_features))  # Parâmetros para tx
-            tw = rng.random((1,N_features))  # Parâmetros para tw
+            tw = rng2.random((1,N_features))  # Parâmetros para tw
 
             # Cria o circuito com os parâmetros fornecidos
             qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
@@ -842,7 +843,7 @@ def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_featur
         for _ in range(simulation_samples):
             # Gere os parâmetros aleatórios
             tx = rng.random((1,N_features))  # Parâmetros para tx
-            tw = rng.random((1,N_features))  # Parâmetros para tw
+            tw = rng2.random((1,N_features))  # Parâmetros para tw
 
             # Cria o circuito com os parâmetros fornecidos
             qc,_,_ = circuit_model(data=tx[0],contador=_,w=tw,counter=counter,qubits=QUBITS,N_qubits=N_QUBITS,N_features=N_features,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
@@ -861,7 +862,7 @@ def pqc_integral_adapted(N_QUBITS, simulation_samples, counter, QUBITS, N_featur
 
 def expressibility(X, weights, qubits, N_qubits, N_features, counter, simulation_samples, model=None, folder=None, norma=None, N_qubits_tgt=None, N_layers=None):
     if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', and 'IQCNDsE_xw'.")#, and 'IQC_AIL_RU'.")
+        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', and 'IQCNDsE'.")#, and 'IQC_AIL_RU'.")
     
     if model=='IQCpQ' and N_qubits_tgt==None:
         raise Exception("In 'IQCpQ' model, giving 'N_qubit_tgt' is required.")
@@ -908,7 +909,7 @@ elif model=='IQC_AIL_RU': # IQC_AIL with arbitrary U operator
         display(qc.draw('mpl')) #display(qc.draw("mpl", filename='./mpl_original.pdf')) #Trocar as chamadas se quiser salvar as imagens dos circuitos
 
     #qc.decompose().draw(output="mpl", style="clifford")
-    tqc=transpile(qc, optimization_level=3, basis_gates=["u3", "cx"], seed_transpiler=1)
+    tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
 
     gate_val = 0
     u3_dir = {}

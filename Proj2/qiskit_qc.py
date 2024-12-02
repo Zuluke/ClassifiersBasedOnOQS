@@ -266,7 +266,6 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
             print(u3_dir)
             print()
 
-        
         u3_params = []
         for i in range(len(u3_dir)):
             u3_params.append(u3_dir[f'u3_{i}']['params'])

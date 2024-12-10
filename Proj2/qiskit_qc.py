@@ -254,6 +254,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
 
         #qc.decompose().draw(output="mpl", style="clifford")
         tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
+        print(tqc.count_ops())
 
         gate_val = 0
         u3_dir = {}

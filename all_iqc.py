@@ -186,7 +186,7 @@ def get_entropy(rho):
     return state_props.von_neumann_entropy(rho)
 
 def av_clf():
-    print("The available classifiers are: 'iqc_classifier', 'iqc_ail_classifier', 'iqc_pq_classifier', 'iqc_sE_Dx_classifier', and 'iqc_sE_xw_classifier'.")
+    print("The available classifiers are: 'iqc_classifier', 'iqc_ail_classifier', 'iqc_pq_classifier', and 'iqcndsE_classifier'.")
 
 def iqc_classifier(vector_x, 
                    vector_ws,

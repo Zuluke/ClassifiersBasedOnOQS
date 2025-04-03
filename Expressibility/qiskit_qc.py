@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 import qiskit
-from qiskit.circuit import QuantumCircuit,Parameter
+from qiskit.circuit import QuantumCircuit,Parameter, QuantumRegister, ClassicalRegister
 from qiskit import transpile
 from qiskit_aer import Aer
 from qiskit.visualization import plot_histogram, visualize_transition, plot_bloch_vector
@@ -151,11 +151,9 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
         
 
         # IQC
-
         qc = QuantumCircuit(N_qubits)
 
-        qc.h(0)
-        qc.h(range(1,N_qubits))
+        qc.h(range(N_qubits))
 
 
 
@@ -255,7 +253,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
 
         #qc.decompose().draw(output="mpl", style="clifford")
         tqc=transpile(qc, optimization_level=0, basis_gates=['u3', 'x', 'h', 'z', 'cx'],seed_transpiler=1)
-        print(tqc.count_ops())
+        #print(tqc.count_ops())
 
         gate_val = 0
         u3_dir = {}
@@ -729,7 +727,8 @@ def statistical_qc(N_samples,N_features,simulation_samples,model=None,folder=Non
             return u3_lista, neg_lista
     else:
         X_df=normalize_model(X_df,model=model,normalize_col=True,normalize_lin=False)
-        u3_lista,neg_lista,express=expressibility(X=X_df,weights=w_df,qubits=qubits,N_qubits=N_qubits,N_features=N_features,simulation_samples=simulation_samples,counter=counter,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
+        u3_lista,neg_lista,express=expressibility(X=X_df,weights=w_df,qubits=qubits,N_qubits=N_qubits,N_features=N_features,simulation_samples=simulation_samples,
+                                                  counter=counter,model=model,folder=folder,N_qubits_tgt=N_qubits_tgt,N_layers=N_layers)
         return u3_lista, neg_lista, express
 
 def haar_integral(num_qubits, simulation_samples, N_features=None, model=None):

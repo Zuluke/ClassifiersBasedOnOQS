@@ -367,16 +367,17 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,model=None,
           
     elif model=='IQCNDsE': # IQC Non Diagonal sigmaE: sE=X_new.T @ w + (X_new.T @ w).T  
         
-        X_new=np.matrix(data)
+        
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-1) - N_features):
                 w=np.append(w,0)
-                X_new=np.append(X_new,0)
+                X_new=np.append(data,0)
             X_new=np.matrix(X_new)
             w=np.matrix(w)
             # Ensure sigmaE is hermitian
             sigmaE = X_new.T @ w + (X_new.T @ w).T
         else:
+            X_new=np.matrix(data)
             w=np.matrix(w)
             # Ensure sigmaE is hermitian
             sigmaE = X_new.T @ w + (X_new.T @ w).T

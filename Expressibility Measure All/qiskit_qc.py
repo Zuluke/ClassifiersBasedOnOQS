@@ -120,8 +120,7 @@ def blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z):
     
 # Execute qiskit circuit
 def run_qasm_counts(qc, shots, measure=False):
-    if measure==True:
-        qc.measure_all()
+    qc.measure_all()
     qasm_simulator = Aer.get_backend("qasm_simulator")
     job = qasm_simulator.run(qc, shots=shots)
     result = job.result()

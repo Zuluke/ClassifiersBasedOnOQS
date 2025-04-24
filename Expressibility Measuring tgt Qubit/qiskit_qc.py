@@ -138,8 +138,8 @@ def get_negativity(rho, dim):
 # Builds up the model to esfera_bloch function
 def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,N_qubits_tgt,model=None,folder=None,printar_cirq=False,N_layers=None):
 
-    data = [Parameter(f'param{i}') for i in range(len(data))]
-    w = [Parameter(f'param{i}') for i in range(len(w))]
+    #data = [Parameter(f'param{i}') for i in range(len(data))]
+    #w = [Parameter(f'param{i}') for i in range(len(w))]
 
     if model=='IQC':
         
@@ -215,7 +215,7 @@ def circuit_model(data,contador,w,counter,qubits,N_qubits,N_features,N_qubits_tg
         if printar_cirq==True:
             print(rho_cog)
 
-        qc.to_gate()
+        #qc.to_gate()
         return qc,u3_params, get_negativity(rho,[2, len(X_new)])
     
     elif model=='IQC_AIL':

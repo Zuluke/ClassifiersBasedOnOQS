@@ -516,7 +516,7 @@ def iqc_ail_classifier(vector_x,
      
     return z, p_cog_new_11_2, output_dict
 
-def iqc_pq_classifier(vector_x, 
+def iqcpq_classifier(vector_x, 
                    vector_ws,
                    normalize_x=False, 
                    normalize_w=False, 
@@ -680,7 +680,7 @@ def iqc_pq_classifier(vector_x,
      
     return z, np.sum(elementos_1), output_dict
 
-def iqc_sE_Dx_classifier(vector_x, 
+def iqcndsE_classifier(vector_x, 
                    vector_ws,
                    normalize_x=False, 
                    normalize_w=False, 
@@ -688,7 +688,7 @@ def iqc_sE_Dx_classifier(vector_x,
                    N_qubits=None,
                    N_qubits_tgt=None):
     
-    # IQC Non Diagonal sigmaE: x elements occupy the diagonal of sigmaE
+    # IQC Non Diagonal sigmaE: all elements of sigmaE are occupied
 
     """
         Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
@@ -789,168 +789,6 @@ def iqc_sE_Dx_classifier(vector_x,
     else:
         z = 1
 
-    output_dict = {}
-    output_dict["U_operators"] = U_operators
-    
-    if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
-        output_dict["negativity"] = get_negativity(p_out, [2, N])
-
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
-        #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
-        #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
-        #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
-        #     file.write(string_to_write)
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("--------------------------------------------------------------------------------------------------------")
-
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
-        #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
-        #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
-        #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
-        #                     + "sigmaE = " + generate_output_matrix_string(sigmaE) + ";\n"\
-        #                     + "p_cog = " + generate_output_matrix_string(p_cog) + ";\n"\
-        #                     + "p_env = " + generate_output_matrix_string(p_env) + ";\n"\
-        #                     + "p_cog_env = " + generate_output_matrix_string(p_cog_env) + ";\n"\
-        #                     + "p_out = " + generate_output_matrix_string(p_out) + ";\n"\
-        #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
-        #     file.write(string_to_write)
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("--------------------------------------------------------------------------------------------------------")
-
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
-        #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
-        #     file.write(string_to_write)
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("--------------------------------------------------------------------------------------------------------")
-
-    if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
-        output_dict["entropy"] = get_entropy(p_out)
-        
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
-        #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
-        #     file.write(string_to_write)
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("\n")
-        #     file.write("--------------------------------------------------------------------------------------------------------")
-     
-    return z, p_cog_new_11_2, output_dict
-
-def iqc_sE_xw_classifier(vector_x, 
-                   vector_ws,
-                   normalize_x=False, 
-                   normalize_w=False, 
-                   dic_classifier_params={},
-                   N_qubits=None,
-                   N_qubits_tgt=None):
-    # IQC Non Diagonal sigmaE: sE=x.T@w
-    """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
-        
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
-
-        After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
-        
-        Works only for binary classifications, therefore, if the probability of class 0 is needed, it can be 1 - probability of being class 1.
-
-        There are a few possible keys for the dic_classifier_params:
-        - sigma_q_params (array) = weights used for calculating sigma_q
-        - use_polar_coordinates_on_sigma_q (boolean) = whether to calculate sigma_q using polar coordinates or weighted sum
-        - load_inputvector_env_state (boolean) = whether to load input vector on the environment state (True) or on sigma_e (False)
-        - operation_for_sigma_e (string) = which operation will be used to combine weights and X for load_inputvector_env_state = False. For now, only "sum" and "mul" are available.
-        - calculate_negativity (boolean) = enables the negativity calculation. Check https://en.wikipedia.org/wiki/Negativity_(quantum_mechanics). Uses Toqito implementation: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.negativity.html
-        - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
-        - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
-
-        To have the original ICQ Classifier, you can have:
-        normalize_x = False
-        normalize_w = False
-        dic_classifier_params["load_inputvector_env_state"] = False
-        dic_classifier_params["sigma_q_params"] = [1, 1, 1, 0]
-
-        returns (z, p_cog_new_11_2, output_dict)
-
-        output_dict contains:
-        - U_operators = list of used U_operators
-        - negativity = negativity associated with that entry
-        - entropy = entropy associated with that entry
-    """
-    
-    N = len(vector_x)
-
-   # IQC Non Diagonal sigmaE: sE=x.T@w
-
-    if "sigma_q_params" in dic_classifier_params:
-        sigma_q_params = dic_classifier_params["sigma_q_params"]
-    if "use_polar_coordinates_on_sigma_q" in dic_classifier_params:
-        use_polar_coordinates_on_sigma_q = dic_classifier_params["use_polar_coordinates_on_sigma_q"]
-    
-
-    if normalize_x:
-        vector_x = normalize(vector_x)
-    if "use_exponential_on_input" in dic_classifier_params and dic_classifier_params["use_exponential_on_input"]:
-        vector_x = np.exp(vector_x)
-    
-    if (use_polar_coordinates_on_sigma_q):
-        # Eq #16, but using polar coordinates so |sigmaQ| gets to be 1
-        sigmaQ = get_sigmaQ_from_polar_coord(sigma_q_params)
-    else:
-        # Eq #16
-        sigmaQ = get_weighted_sigmaQ(sigma_q_params)
-
-    # We want to have multiple environments, thus we need to have a list of weights for each of them
-    if not(isinstance(vector_ws, (list, np.ndarray)) and all(isinstance(item, (list, np.ndarray)) for item in vector_ws)):
-        vector_ws = np.array(vector_ws, dtype=complex)
-    
-    # Eq 25
-    p_env = np.ones((N,1))/np.sqrt(N)
-    p_env = get_p(p_env)
-
-    # Our first p_cog will be the original one, but will change overtime
-    p_cog = np.ones((2,1)) / np.sqrt(2) 
-    # Eq #18
-    p_cog = get_p(p_cog)
-
-    # We'll update the p_cog for every env we have
-    p_cog_new = p_cog
-    U_operators = []
-    for vector_w in vector_ws:
-        if normalize_w:
-            vector_w = normalize(vector_w)
-            
-        # Equivalent to Eq #15
-        sigmaE = get_sigmaE(vector_x, vector_w, dic_classifier_params,ndx='xw')
-
-        U_operator = get_U_operator(sigmaQ, sigmaE)
-        U_operators.append(U_operator)
-
-        # Extracting p_cog and p_env kron
-        p_cog_env = np.kron(p_cog_new, p_env)
-
-        # First part of Equation #20 in the Article
-        p_out = np.array(U_operator * p_cog_env * U_operator.getH())
-        
-        # Second part of Equation #20 in the Article
-        # For multiple environemnts, this will be our new p_cog
-        p_cog_new = np.trace(p_out.reshape([2,N,2,N]), axis1=1, axis2=3)
-    
-    # As the result is a diagonal matrix, the probability of being class 0 will be on position 0,0
-    p_cog_new_00_2 = p_cog_new[0,0]
-
-    # ... and the probability of being class 1 will be on position 1,1
-    p_cog_new_11_2 = p_cog_new[1,1]
-    if (p_cog_new_00_2 >= p_cog_new_11_2):
-        z = 0
-    else:
-        z = 1
-    
-    
     output_dict = {}
     output_dict["U_operators"] = U_operators
     

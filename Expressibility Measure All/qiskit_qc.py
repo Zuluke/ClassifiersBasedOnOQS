@@ -1067,8 +1067,6 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         unitary_gate = IQC_Angle_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
 
-        return 
-
     if model=='IQC_AIL': qc=conj_reversed_qc_ail(qc)
     elif model=='IQC_Angle': qc=conj_reversed_qc_angle(qc)
     else: qc=conj_reversed_qc(qc)

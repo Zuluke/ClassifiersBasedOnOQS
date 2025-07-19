@@ -15,6 +15,9 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn import preprocessing
 from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, make_scorer, roc_auc_score, classification_report
 
+from qiskit.quantum_info import Operator, Statevector, DensityMatrix
+from qiskit import QuantumCircuit
+
 from imblearn.over_sampling import SMOTE
 
 from toqito import state_props
@@ -52,7 +55,7 @@ def elements_and_index(p):
 def generate_output_matrix_string(matrix):
     return str(Matrix(matrix)).replace("[", "{").replace("]", "}").replace("Matrix", "").replace("(", "").replace(")", "")
 
-def get_sigmaE(vector_x, vector_w, dic_classifier_params, ndx=None):
+def get_sigmaE(vector_x, vector_w, dic_classifier_params, ndse=False):
     """
         Multiplies the input (vector_x) by the weights (vector_w), resulting in a diagonal matrix. 
         It discards any imaginary part vector_x and vector_w might have.
@@ -60,7 +63,7 @@ def get_sigmaE(vector_x, vector_w, dic_classifier_params, ndx=None):
     """
     if ("operation_for_sigma_e" in dic_classifier_params and dic_classifier_params["operation_for_sigma_e"] == "sum"):
         return np.diag(vector_x) + np.diag(vector_w)
-    elif ndx=='xw':
+    elif ndse==True:
         vector_w=np.matrix(vector_w)
         vector_x=np.matrix(vector_x)
         return (vector_x.T @ vector_w) + (vector_x.T @ vector_w).T
@@ -167,6 +170,7 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
         sigmaE=np.diag(w)
 
     elif iqcndse==True:
+        N_qubits_tgt=1
         X_new=np.array(X)
         atw=np.array(vw)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
@@ -235,6 +239,34 @@ def get_entropy(rho):
         See implementation at: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.von_neumann_entropy.html
     """
     return state_props.von_neumann_entropy(rho)
+
+def build_angle_matrix(x_vals, N_qubits, N_layers=2):
+    """
+    Numerically constructs the circuit matrix with R_x gates (on all qubits except the first)
+    and cascaded CNOTs.
+    
+    Args:
+        x_vals (list or np.array): List of parameters [x_0, x_1, ..., x_{N_features}]
+    
+    Returns:
+        np.array: Unitary matrix of the circuit as a complex np.array (2^N x 2^N)
+    """
+
+    qc = QuantumCircuit(N_qubits)
+
+    qc.h(0)  # Apply Hadamard at q 0
+    for _ in range(N_layers):
+        # Apply R_x(x_i) for qubits from 1 to N_features
+        for i in range(1, N_qubits):
+            qc.rx(x_vals[i-1], i)
+
+        # Apply cascaded CNOTs: q1→q2, q2→q3, q3→q4, ..., till qN-1→qN
+        for i in range(1, N_qubits - 1):
+            qc.cx(i, i + 1)
+        
+        # Convert circuit to unitary matrix
+    U = Operator(qc).data
+    return U
 
 def av_clf():
     print("The available classifiers are: 'iqc_classifier', 'iqc_ail_classifier', 'iqc_pq_classifier', 'iqcndsE_classifier', and 'iqc_angle_classifier'.")
@@ -614,7 +646,7 @@ def iqcpq_classifier(vector_x,
     """
     
     """
-    Notice that, for N_qubits_tgt=1, we have IQCpQ = IQC
+        Notice that, for N_qubits_tgt=1, we have IQCpQ = IQC
     """
         
     if "sigma_q_params" in dic_classifier_params:
@@ -775,7 +807,9 @@ def iqcndsE_classifier(vector_x,
     """
     
     N = len(vector_x)
-        
+    N_qubits = dic_classifier_params["N_qubits"]
+    N_qubits_tgt = dic_classifier_params["N_qubits_tgt"]   
+    
 
     if "sigma_q_params" in dic_classifier_params:
         sigma_q_params = dic_classifier_params["sigma_q_params"]
@@ -792,8 +826,6 @@ def iqcndsE_classifier(vector_x,
         # Eq #16, but using polar coordinates so |sigmaQ| gets to be 1
         sigmaQ = get_sigmaQ_from_polar_coord(sigma_q_params)
     else:
-        # Eq #16
-        sigma_q_params=np.full(2**N_qubits_tgt,1)
         sigmaQ = get_weighted_sigmaQ(sigma_q_params)
 
     # We want to have multiple environments, thus we need to have a list of weights for each of them
@@ -817,7 +849,7 @@ def iqcndsE_classifier(vector_x,
             vector_w = normalize(vector_w)
             
         # Equivalent to Eq #15
-        sigmaE = get_sigmaE(vector_x, vector_w, dic_classifier_params,ndx='Dx')
+        sigmaE = get_sigmaE(vector_x, vector_w, dic_classifier_params, ndse=True)
 
         U_operator = get_U_operator(sigmaQ, sigmaE)
         U_operators.append(U_operator)
@@ -959,6 +991,7 @@ def iqc_angle_classifier(vector_x,
     if not(isinstance(vector_ws, (list, np.ndarray)) and all(isinstance(item, (list, np.ndarray)) for item in vector_ws)):
         vector_ws = np.array(vector_ws, dtype=complex)
     
+    '''
     # Eq 25
     p_env = np.ones((N,1))/np.sqrt(N)
     p_env = get_p(p_env)
@@ -970,6 +1003,10 @@ def iqc_angle_classifier(vector_x,
 
     # We'll update the p_cog for every env we have
     p_cog_new = p_cog
+    '''
+    
+    M=build_angle_matrix(np.pi*vector_x, N_qubits, N_layers=2)
+    rho_final = rho.evolve(U)  # Equivalente a U ρ U^†
     U_operators = []
     for vector_w in vector_ws:
         if normalize_w:
@@ -1406,7 +1443,7 @@ def execute_training_test_k_fold(
                         dic_classifier_params=dic_classifier_params,
                         dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)
 
-        score = clf.score(normalized_X_test, y_test)
+        score = clf.score(normalized_X_test, y_test) # This is the accuracy score
         f1score = f1_score(clf.predict(normalized_X_test), y_test, average='macro', zero_division=0)
 
         if not(classical_classifier):
@@ -1439,9 +1476,9 @@ def execute_training_test_k_fold(
             print("-------------------------------------------------------------------------------------------------------------------")
     
     if print_avg_metric:
-        print("AVG: Scores =", np.mean(scores), 
-              "F1-Scores =", np.mean(f1scores), 
-              "Negativity =", [np.mean([neg[i] for neg in negativities]) for i in range(len(unique_labels(y)))])
+        print("AVG: Scores =", np.mean(scores),'\n',
+              "F1-Scores =", np.mean(f1scores),'\n',
+              "Negativity =", [np.mean([neg[i] for neg in negativities]) for i in range(len(unique_labels(y)))],'\n')
 
     output_dict = {}
     output_dict["negativities"] = negativities

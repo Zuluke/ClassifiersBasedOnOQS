@@ -15,7 +15,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn import preprocessing
 from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, make_scorer, roc_auc_score, classification_report
 
-from qiskit.quantum_info import Operator, Statevector, DensityMatrix
+from qiskit.quantum_info import Operator, Statevector, DensityMatrix, partial_trace
 from qiskit import QuantumCircuit
 
 from imblearn.over_sampling import SMOTE
@@ -243,7 +243,8 @@ def get_entropy(rho):
 def build_angle_matrix(x_vals, N_qubits, N_layers=2):
     """
     Numerically constructs the circuit matrix with R_x gates (on all qubits except the first)
-    and cascaded CNOTs.
+    and cascaded CNOTs. This function builds an unitary matrix that acts on Hilberts composed 
+    state space.
     
     Args:
         x_vals (list or np.array): List of parameters [x_0, x_1, ..., x_{N_features}]
@@ -251,7 +252,7 @@ def build_angle_matrix(x_vals, N_qubits, N_layers=2):
     Returns:
         np.array: Unitary matrix of the circuit as a complex np.array (2^N x 2^N)
     """
-
+    
     qc = QuantumCircuit(N_qubits)
 
     qc.h(0)  # Apply Hadamard at q 0
@@ -265,8 +266,8 @@ def build_angle_matrix(x_vals, N_qubits, N_layers=2):
             qc.cx(i, i + 1)
         
         # Convert circuit to unitary matrix
-    U = Operator(qc).data
-    return U
+    M = Operator(qc).data
+    return M
 
 def av_clf():
     print("The available classifiers are: 'iqc_classifier', 'iqc_ail_classifier', 'iqc_pq_classifier', 'iqcndsE_classifier', and 'iqc_angle_classifier'.")
@@ -1004,9 +1005,11 @@ def iqc_angle_classifier(vector_x,
     # We'll update the p_cog for every env we have
     p_cog_new = p_cog
     '''
+    N_qubits = dic_classifier_params["N_qubits"]
+    N_qubits_tgt = dic_classifier_params["N_qubits_tgt"]
+    qubits = dic_classifier_params["qubits"]
+    N_layers= dic_classifier_params["N_layers"]
     
-    M=build_angle_matrix(np.pi*vector_x, N_qubits, N_layers=2)
-    rho_final = rho.evolve(U)  # Equivalente a U ρ U^†
     U_operators = []
     for vector_w in vector_ws:
         if normalize_w:
@@ -1018,25 +1021,22 @@ def iqc_angle_classifier(vector_x,
         sigmaE = np.diag(vector_w)
         U_operator = get_U_operator(sigmaQ, sigmaE)
         U_operators.append(U_operator)
+        """
+        print("Shape of sigmaQ:", sigmaQ.shape)
+        print("Shape of sigmaE:", sigmaE.shape)
+        print("Shape of U:", U_operator.shape)"""
 
         # Eq #19 applied on a Quantum state equivalent of Hadamard(|00...0>) = 1/sqrt(N) * (|00...0> + ... + |11...1>)
         # We can either have Hadamard applied to each instance attribute...
-        vector_x_norm = (np.linalg.norm(vector_x) + 1e-16)
-
-        # env = x1/norm(x) |0> + x2/norm(x) |1> .... + xn/norm(x) |n>
-        p_env = np.array(vector_x).reshape((N, 1)) / vector_x_norm
-        p_env = get_p(p_env)
-
-        # Extracting p_cog and p_env kron
-        p_cog_env = np.kron(p_cog_new, p_env)
-
-        # First part of Equation #20 in the Article
-        p_out = np.array(U_operator * p_cog_env * U_operator.getH())
-        
-        # Second part of Equation #20 in the Article
-        # For multiple environemnts, this will be our new p_cog
-        p_cog_new = np.trace(p_out.reshape([2,N,2,N]), axis1=1, axis2=3)
-    
+        vector_x_normalized = vector_x / (np.linalg.norm(vector_x) + 1e-16) 
+        psi = Statevector.from_int(0, dims=2**N_qubits)
+        M = build_angle_matrix(np.pi*vector_x_normalized, N_qubits, N_layers=N_layers)
+        psi = psi.evolve(M)  # Equivalent to M * psi
+        p = DensityMatrix(psi.evolve(M))  # Density matrix of the state after evolution M
+        """
+        print("Shape of p:", p.data.shape)"""
+        p_out = p.evolve(U_operator)  # Equivalente a U ρ U^†
+        p_cog_new = partial_trace(p_out, qubits[1:]).data
     # As the result is a diagonal matrix, the probability of being class 0 will be on position 0,0
     p_cog_new_00_2 = p_cog_new[0,0]
 
@@ -1051,7 +1051,7 @@ def iqc_angle_classifier(vector_x,
     output_dict["U_operators"] = U_operators
     
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
-        output_dict["negativity"] = get_negativity(p_out, [2, N])
+        output_dict["negativity"] = get_negativity(p_out.data, [2, N])
 
         # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
@@ -1088,7 +1088,7 @@ def iqc_angle_classifier(vector_x,
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
-        output_dict["entropy"] = get_entropy(p_out)
+        output_dict["entropy"] = get_entropy(p_out.data)
         
         # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
@@ -1228,6 +1228,8 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
         if "coupling_constants" not in self.dic_training_params:
             dic_training_params["coupling_constants"] = [1]
         self.coupling_constants = dic_training_params["coupling_constants"]
+        if "iqc_angle" not in self.dic_training_params:
+            dic_training_params["iqc_angle"] = False
         self.negativity_ = []
         self.entropy_ = []
 
@@ -1263,7 +1265,11 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
         np.random.seed(self.random_seed)
         weights = []
         for _ in self.dic_training_params["coupling_constants"]:
-            weights.append(np.random.uniform(low=low, high=high, size=(dimensions,)))
+            if self.dic_training_params["iqc_angle"] == True:
+                # IQC Angle Classifier
+                weights.append(np.random.uniform(low=low, high=high, size=(2**(dimensions-1),)))
+            else:
+                weights.append(np.random.uniform(low=low, high=high, size=(dimensions,)))
         
         ITERATION = 0
         best_weight = None
@@ -1374,13 +1380,14 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
 def get_stratified_kfold(k_folds=10, random_seed=1):
     return StratifiedKFold(n_splits=k_folds, random_state=random_seed, shuffle=True)
 
-def print_metrics(scores, f1scores):
-    print("Scores:", scores)
-    print("Best score:", np.max(scores))
-    print("F1-Scores:", f1scores)
-    print("Max F1-Score:", np.max(f1scores))
-    print("Avg score:", np.mean(scores))
-    print("Avg F1-Score:", np.mean(f1scores))
+def print_metrics(scores, f1scores, k_times_fold, print_all=False):
+    if print_all:
+        print("Scores:", scores)
+        print("F1-Scores:", f1scores)
+    print(f"Best Score {k_times_fold} folds:", np.max(scores))
+    print(f"Max F1-Score at {k_times_fold} folds:", np.max(f1scores))
+    print(f"Avg {k_times_fold} Score folds:", np.mean(scores))
+    print(f"Avg {k_times_fold} F1-Score folds:", np.mean(f1scores))
 
 def execute_training_test_k_fold(
                 X, 

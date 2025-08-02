@@ -25,6 +25,7 @@ from toqito import state_props
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
+from datetime import datetime
 
 import pandas as pd
 
@@ -1380,14 +1381,68 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
 def get_stratified_kfold(k_folds=10, random_seed=1):
     return StratifiedKFold(n_splits=k_folds, random_state=random_seed, shuffle=True)
 
-def print_metrics(scores, f1scores, k_times_fold, print_all=False):
+'''def print_and_save_metrics(scores, f1scores, k_times_fold, print_all=False):
     if print_all:
         print("Scores:", scores)
         print("F1-Scores:", f1scores)
     print(f"Best Score {k_times_fold} folds:", np.max(scores))
     print(f"Max F1-Score at {k_times_fold} folds:", np.max(f1scores))
     print(f"Avg {k_times_fold} Score folds:", np.mean(scores))
-    print(f"Avg {k_times_fold} F1-Score folds:", np.mean(f1scores))
+    print(f"Avg {k_times_fold} F1-Score folds:", np.mean(f1scores))'''
+
+def print_and_save_metrics(scores, f1scores, negativities, k_times_fold, model, database, print_all=False):
+    # Cálculo das métricas básicas
+    best_score = np.max(scores)
+    best_f1 = np.max(f1scores)
+    avg_score = np.mean(scores)
+    avg_f1 = np.mean(f1scores)
+    std_err_score = np.std(scores, ddof=1) / np.sqrt(len(scores))
+    std_err_f1 = np.std(f1scores, ddof=1) / np.sqrt(len(f1scores))
+
+    # Cálculo das estatísticas para cada classe em negativities
+    negativities_metrics = {
+        f"Negativity_Class_{i}": {
+            "Mean": np.mean(values),
+            "Std_Error": np.std(values, ddof=1) / np.sqrt(len(values))
+        }
+        for i, values in enumerate(negativities)
+    }
+
+    # Impressão dos resultados
+    if print_all:
+        print("Accuracy:", scores)
+        print("F1-Scores:", f1scores)
+        for i, values in enumerate(negativities):
+            print(f"Negativity Class {i}:", values)
+
+    print(f"\nMétricas para {k_times_fold} folds:")
+    print(f"Melhor Score: {best_score:.4f}")
+    print(f"Melhor F1-Score: {best_f1:.4f}")
+    print(f"Score Médio: {avg_score:.4f} ± {std_err_score:.4f}")
+    print(f"F1-Score Médio: {avg_f1:.4f} ± {std_err_f1:.4f}")
+    
+    for i, metrics in negativities_metrics.items():
+        print(f"{i} - Média: {metrics['Mean']:.4f} ± {metrics['Std_Error']:.4f}")
+
+    # Preparação do DataFrame para salvar
+    data_to_save = {
+        'Accuracy': scores,
+        'F1_Scores': f1scores
+    }
+    
+    # Adiciona as negatividades por classe ao DataFrame
+    for i, values in enumerate(negativities):
+        data_to_save[f"Negativity_Class_{i}"] = values
+
+    metrics_df = pd.DataFrame(data_to_save)
+    
+    # Nome do arquivo com data atual
+    current_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{model}_{database}_metrics_results_{current_date}.csv"
+    
+    # Salvando em CSV
+    metrics_df.to_csv(filename, index=False)
+    print(f"\nDados salvos em: {filename}")
 
 def execute_training_test_k_fold(
                 X, 

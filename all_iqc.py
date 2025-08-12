@@ -1378,10 +1378,10 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
         self.entropy_ = np.mean(self.entropy_)           
         return np.array(outputs)
 
-def get_stratified_kfold(k_folds=10, random_seed=1):
+def get_stratified_kfold(k_folds, random_seed):
     return StratifiedKFold(n_splits=k_folds, random_state=random_seed, shuffle=True)
 
-'''def print_and_save_metrics(scores, f1scores, k_times_fold, print_all=False):
+'''def print_metrics(scores, f1scores, k_times_fold, print_all=False):
     if print_all:
         print("Scores:", scores)
         print("F1-Scores:", f1scores)
@@ -1390,7 +1390,7 @@ def get_stratified_kfold(k_folds=10, random_seed=1):
     print(f"Avg {k_times_fold} Score folds:", np.mean(scores))
     print(f"Avg {k_times_fold} F1-Score folds:", np.mean(f1scores))'''
 
-def print_and_save_metrics(scores, f1scores, negativities, k_times_fold, model, database, print_all=False):
+def print_and_save_metrics(scores, f1scores, negativities, n_times_kfold, k_times_fold, model, database, print_all=False):
     # Cálculo das métricas básicas
     best_score = np.max(scores)
     best_f1 = np.max(f1scores)
@@ -1409,17 +1409,22 @@ def print_and_save_metrics(scores, f1scores, negativities, k_times_fold, model, 
     }
 
     # Impressão dos resultados
+    '''
+
+        MUDAR PARA SALVAR SÓ A MÉDIA
+    
+    478.'''
     if print_all:
         print("Accuracy:", scores)
         print("F1-Scores:", f1scores)
         for i, values in enumerate(negativities):
             print(f"Negativity Class {i}:", values)
 
-    print(f"\nMétricas para {k_times_fold} folds:")
-    print(f"Melhor Score: {best_score:.4f}")
-    print(f"Melhor F1-Score: {best_f1:.4f}")
-    print(f"Score Médio: {avg_score:.4f} ± {std_err_score:.4f}")
-    print(f"F1-Score Médio: {avg_f1:.4f} ± {std_err_f1:.4f}")
+    print(f"\nMetrics for {n_times_kfold} times {k_times_fold} folds:")
+    print(f"Best Accuracy: {best_score:.4f}")
+    print(f"Best F1-Score: {best_f1:.4f}")
+    print(f"AVG Accuracy: {avg_score:.4f} ± {std_err_score:.4f}")
+    print(f"AVG F1-Score: {avg_f1:.4f} ± {std_err_f1:.4f}")
     
     for i, metrics in negativities_metrics.items():
         print(f"{i} - Média: {metrics['Mean']:.4f} ± {metrics['Std_Error']:.4f}")
@@ -1447,8 +1452,8 @@ def print_and_save_metrics(scores, f1scores, negativities, k_times_fold, model, 
 def execute_training_test_k_fold(
                 X, 
                 y, 
-                k_folds=10,
-                random_seed = 1,
+                k_folds,
+                random_seed,
                 classifier_function=None, 
                 dic_classifier_params={},
                 one_vs_classifier=OneVsRestClassifier, 

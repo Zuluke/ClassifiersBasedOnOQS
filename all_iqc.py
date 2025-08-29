@@ -1390,7 +1390,66 @@ def get_stratified_kfold(k_folds, random_seed):
     print(f"Avg {k_times_fold} Score folds:", np.mean(scores))
     print(f"Avg {k_times_fold} F1-Score folds:", np.mean(f1scores))'''
 
-def print_and_save_metrics(scores, f1scores, negativities, n_times_kfold, k_times_fold, model, database, print_all=False):
+def print_and_save_weights(weights, model, database, print_all=False):
+    """
+        Prints and saves the best weights used in the training.
+        Weights are saved in a CSV file with the current date.
+    """
+    if print_all:
+        print("Weights:", weights)
+    
+    # Preparação do DataFrame para salvar
+    data_to_save = {
+        'Weights': weights
+    }
+    
+    weights_df = pd.DataFrame(data_to_save)
+    
+    # Nome do arquivo com data atual
+    current_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{model}_{database}_weights_{current_date}.csv"
+    
+    # Salvando em CSV
+    weights_df.to_csv(filename, index=False)
+    print(f"\nWeights saved in: {filename}")
+
+def print_and_save_negativity(negativities, model, database, print_all=False):
+    """
+        Prints and saves the mean negativity per class obtained in the training.
+        Negativity is saved in a CSV file with the current date.
+    """
+
+    negativities_metrics = {
+        f"Negativity_Class_{i}": {
+            "Mean": np.mean(values),
+            "Std_Error": np.std(values, ddof=1) / np.sqrt(len(values))
+        }
+        for i, values in enumerate(negativities)
+    }
+    
+    if print_all:
+        print("Negativity:", negativities)
+    
+    # Preparação do DataFrame para salvar
+    for i, metrics in negativities_metrics.items():
+        print(f"{i} - AVG: {metrics['Mean']:.4f} ± {metrics['Std_Error']:.4f}")
+    
+    # Adiciona as negatividades por classe ao DataFrame
+    data_to_save = {}
+    for i, values in enumerate(negativities):
+        data_to_save[f"Negativity_Class_{i}"] = values
+
+    negativity_df = pd.DataFrame(data_to_save)
+    
+    # Nome do arquivo com data atual
+    current_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{model}_{database}_negativity_{current_date}.csv"
+    
+    # Salvando em CSV
+    negativity_df.to_csv(filename, index=False)
+    print(f"\nNegativity saved in: {filename}")
+
+def print_and_save_metrics(scores, f1scores, n_times_kfold, k_times_fold, model, database, print_all=False):
     # Cálculo das métricas básicas
     best_score = np.max(scores)
     best_f1 = np.max(f1scores)
@@ -1400,25 +1459,11 @@ def print_and_save_metrics(scores, f1scores, negativities, n_times_kfold, k_time
     std_err_f1 = np.std(f1scores, ddof=1) / np.sqrt(len(f1scores))
 
     # Cálculo das estatísticas para cada classe em negativities
-    negativities_metrics = {
-        f"Negativity_Class_{i}": {
-            "Mean": np.mean(values),
-            "Std_Error": np.std(values, ddof=1) / np.sqrt(len(values))
-        }
-        for i, values in enumerate(negativities)
-    }
 
     # Impressão dos resultados
-    '''
-
-        MUDAR PARA SALVAR SÓ A MÉDIA
-    
-    478.'''
     if print_all:
         print("Accuracy:", scores)
         print("F1-Scores:", f1scores)
-        for i, values in enumerate(negativities):
-            print(f"Negativity Class {i}:", values)
 
     print(f"\nMetrics for {n_times_kfold} times {k_times_fold} folds:")
     print(f"Best Accuracy: {best_score:.4f}")
@@ -1426,18 +1471,11 @@ def print_and_save_metrics(scores, f1scores, negativities, n_times_kfold, k_time
     print(f"AVG Accuracy: {avg_score:.4f} ± {std_err_score:.4f}")
     print(f"AVG F1-Score: {avg_f1:.4f} ± {std_err_f1:.4f}")
     
-    for i, metrics in negativities_metrics.items():
-        print(f"{i} - Média: {metrics['Mean']:.4f} ± {metrics['Std_Error']:.4f}")
-
     # Preparação do DataFrame para salvar
     data_to_save = {
         'Accuracy': scores,
         'F1_Scores': f1scores
     }
-    
-    # Adiciona as negatividades por classe ao DataFrame
-    for i, values in enumerate(negativities):
-        data_to_save[f"Negativity_Class_{i}"] = values
 
     metrics_df = pd.DataFrame(data_to_save)
     
@@ -1447,7 +1485,7 @@ def print_and_save_metrics(scores, f1scores, negativities, n_times_kfold, k_time
     
     # Salvando em CSV
     metrics_df.to_csv(filename, index=False)
-    print(f"\nDados salvos em: {filename}")
+    print(f"\nMetrics saved in: {filename}")
 
 def execute_training_test_k_fold(
                 X, 
@@ -1508,22 +1546,30 @@ def execute_training_test_k_fold(
                     IQCClassifier(
                         classifier_function=classifier_function, 
                         dic_classifier_params=dic_classifier_params,
-                        dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)
+                        dic_training_params=dic_training_params), n_jobs=-1).fit(normalized_X_train, y_train)#, verbose=1).fit(normalized_X_train, y_train)#
 
+        weights = clf.estimators_[0].weight_ 
         score = clf.score(normalized_X_test, y_test) # This is the accuracy score
         f1score = f1_score(clf.predict(normalized_X_test), y_test, average='macro', zero_division=0)
 
         if not(classical_classifier):
-            while len(negativities) < len(clf.estimators_):
+            n_classes = len(clf.classes_)
+
+            while len(negativities) < n_classes:
+                '''print("Adding new class to negativities and entropies")'''
                 negativities.append([])
                 entropies.append([])
-            
+            '''print("Neg Len:", len(negativities))
+            print('Classes:', clf.classes_)
+            print('Estimator Lenght:', len(clf.estimators_))
+            print('Estimator:', clf.estimators_[0])'''
             index = 0
-            for estimator in clf.estimators_:
+            for estimator in clf.estimators_:#o problema tá aqui, pois o sklearn não está retornando o mesmo número de estimadores que o número de classes
                 # negativities variable will look like this:
                 # negativities[0] = all folds mean(negativity) for class 0 - which means that len(negativities[0]) = k_folds;
                 # so if we want to take average negativity of class 0 for all folds, we need to take mean(negativities[0]).
-                # Same goes for entropies
+                # Same goes for entropies    
+                '''print("Estimator", index, "Negativity:", estimator.negativity_)'''
                 negativities[index].append(estimator.negativity_)
                 entropies[index].append(estimator.entropy_)
                 index = index + 1
@@ -1549,4 +1595,117 @@ def execute_training_test_k_fold(
 
     output_dict = {}
     output_dict["negativities"] = negativities
-    return scores, f1scores, output_dict
+    return scores, f1scores, output_dict, weights
+
+def execute_training_test_k_fold_NEW(
+                X, 
+                y, 
+                k_folds,
+                random_seed,
+                classifier_function=None, 
+                dic_classifier_params={},
+                one_vs_classifier=OneVsRestClassifier, 
+                dic_training_params={},
+                print_each_fold_metric=False,
+                print_avg_metric=True):
+    """
+        Executes ICQ classifier against a dataset using classifier_function as classifier.
+        Handles binary datasets without wrapping in OneVsRest/OneVsOne.
+    """
+
+    if "classical_classifier" in dic_training_params:
+        classifier = dic_training_params["classifier"] 
+        classical_classifier = True
+    else:
+        classical_classifier = False
+    
+    if "classical_classifier" in dic_classifier_params:
+        N_qubits=dic_classifier_params["N_qubits"]
+        N_qubits_tgt=dic_classifier_params["N_qubits_tgt"]
+
+    # Creating K-Fold to use
+    skf = get_stratified_kfold(k_folds=k_folds, random_seed=random_seed)
+
+    scores = []
+    f1scores = []
+
+    negativities = [[]]
+    entropies = [[]]
+
+    normalize_axis = 0
+    if "normalize_axis" in dic_classifier_params:
+        normalize_axis = dic_classifier_params["normalize_axis"]
+
+    # Training the classifier itself
+    for i, (train_index, test_index) in enumerate(skf.split(X, y)):
+        X_train = X[train_index]
+        X_test = X[test_index]
+
+        y_train = y[train_index]
+        y_test = y[test_index]
+
+        normalized_X_train = preprocessing.normalize(X_train, axis=normalize_axis) # Default is 1 (by line)
+        normalized_X_train = preprocessing.normalize(normalized_X_train, axis=1) # normalize to norm=1
+        normalized_X_test  = preprocessing.normalize(X_test, axis=normalize_axis)
+        normalized_X_test  = preprocessing.normalize(normalized_X_test, axis=1)
+        
+        # Escolha do classificador:
+        if classical_classifier: 
+            clf = one_vs_classifier(classifier).fit(normalized_X_train, y_train)  
+        else:
+            if len(np.unique(y_train)) == 2:
+                # BINÁRIO → usa IQCClassifier direto
+                clf = IQCClassifier(
+                        classifier_function=classifier_function, 
+                        dic_classifier_params=dic_classifier_params,
+                        dic_training_params=dic_training_params).fit(normalized_X_train, y_train)
+            else:
+                # MULTICLASS → usa wrapper (OneVsRest/OneVsOne)
+                clf = one_vs_classifier(
+                        IQCClassifier(
+                            classifier_function=classifier_function, 
+                            dic_classifier_params=dic_classifier_params,
+                            dic_training_params=dic_training_params), n_jobs=-1).fit(normalized_X_train, y_train)
+
+        # Avaliação
+        score = clf.score(normalized_X_test, y_test) 
+        f1score = f1_score(clf.predict(normalized_X_test), y_test, average='macro', zero_division=0)
+
+        if not(classical_classifier):
+            if len(np.unique(y_train)) == 2:
+                # Caso binário → negatividade e entropia vêm direto do único classificador
+                if len(negativities) < 2:
+                    negativities = [[], []]
+                    entropies = [[], []]
+                negativities[0].append(clf.negativity_)
+                negativities[1].append(clf.negativity_)
+                entropies[0].append(clf.entropy_)
+                entropies[1].append(clf.entropy_)
+            else:
+                # Caso multiclasse → já existe um estimador por classe
+                n_classes = len(clf.classes_)
+                while len(negativities) < n_classes:
+                    negativities.append([])
+                    entropies.append([])
+                for index, estimator in enumerate(clf.estimators_):
+                    negativities[index].append(estimator.negativity_)
+                    entropies[index].append(estimator.entropy_)
+
+        scores.append(score)
+        f1scores.append(f1score)
+
+        if print_each_fold_metric:
+            y_pred = clf.predict(normalized_X_test)
+            print("K-Fold #" + str(i))
+            print("Mean negativities for all classes:", [neg[-1] for neg in negativities])
+            print(classification_report(y_test, y_pred, zero_division=0))
+            print("-------------------------------------------------------------------------------------------------------------------")
+    
+    if print_avg_metric:
+        print("AVG: Scores =", np.mean(scores),'\n',
+              "F1-Scores =", np.mean(f1scores),'\n',
+              "Negativity =", [np.mean(neg) for neg in negativities],'\n')
+
+    output_dict = {}
+    output_dict["negativities"] = negativities
+    return scores, f1scores, output_dict, getattr(clf, "weight_", None)

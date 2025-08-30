@@ -1546,7 +1546,7 @@ def execute_training_test_k_fold(
                     IQCClassifier(
                         classifier_function=classifier_function, 
                         dic_classifier_params=dic_classifier_params,
-                        dic_training_params=dic_training_params), n_jobs=-1).fit(normalized_X_train, y_train)#, verbose=1).fit(normalized_X_train, y_train)#
+                        dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)
 
         weights = clf.estimators_[0].weight_ 
         score = clf.score(normalized_X_test, y_test) # This is the accuracy score

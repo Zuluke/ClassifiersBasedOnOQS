@@ -666,7 +666,7 @@ def iqcpq_classifier(vector_x,
         sigmaQ = get_sigmaQ_from_polar_coord(sigma_q_params)
     else:
         # Eq #16
-        sigma_q_params=np.full(2**N_qubits_tgt,1) # Building a vector to determine teh dimension of sigmaQ 
+        sigma_q_params=np.full(2**N_qubits_tgt,1) # Building a vector to determine the dimension of sigmaQ 
         sigmaQ = get_weighted_sigmaQ(sigma_q_params,iqcpq=True)
 
     # We want to have multiple environments, thus we need to have a list of weights for each of them

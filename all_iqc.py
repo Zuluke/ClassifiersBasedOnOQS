@@ -1499,7 +1499,7 @@ def execute_training_test_k_fold(
                 print_each_fold_metric=False,
                 print_avg_metric=True):
     """
-        Executes ICQ classifier against an dataset using classifier_function as classifier (see /helpers/icq_executions.py for more info).
+        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/icq_executions.py for more info).
         As for datasets, we need it to return a pair X, y. See database_helpers for examples
     """
 
@@ -1597,7 +1597,7 @@ def execute_training_test_k_fold(
     output_dict["negativities"] = negativities
     return scores, f1scores, output_dict, weights
 
-def execute_training_test_k_fold_NEW(
+def execute_training_test_k_fold_two_classes(
                 X, 
                 y, 
                 k_folds,
@@ -1609,7 +1609,117 @@ def execute_training_test_k_fold_NEW(
                 print_each_fold_metric=False,
                 print_avg_metric=True):
     """
-        Executes ICQ classifier against a dataset using classifier_function as classifier.
+        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/icq_executions.py for more info).
+        As for datasets, we need it to return a pair X, y. See database_helpers for examples
+    """
+
+    if "classical_classifier" in dic_training_params:
+        classifier = dic_training_params["classifier"] 
+        classical_classifier = True
+    else:
+        classical_classifier = False
+    
+    if "classical_classifier" in dic_classifier_params:
+        N_qubits=dic_classifier_params["N_qubits"]
+        N_qubits_tgt=dic_classifier_params["N_qubits_tgt"]
+
+    # Creating K-Fold to use
+    skf = get_stratified_kfold(k_folds=k_folds, random_seed=random_seed)
+
+    scores = []
+    f1scores = []
+
+    negativities = [[]]
+    entropies = [[]]
+
+    normalize_axis = 0
+    if "normalize_axis" in dic_classifier_params:
+        normalize_axis = dic_classifier_params["normalize_axis"]
+
+    # Training the classifier itself
+    for i, (train_index, test_index) in enumerate(skf.split(X, y)):
+        X_train = X[train_index]
+        X_test = X[test_index]
+
+        y_train = y[train_index]
+        y_test = y[test_index]
+
+        normalized_X_train = preprocessing.normalize(X_train, axis=normalize_axis) # Default is 1 (by line)
+        normalized_X_train = preprocessing.normalize(normalized_X_train, axis=1) # This prevents states with norms not equal to 1
+        normalized_X_test  = preprocessing.normalize(X_test, axis=normalize_axis)
+        normalized_X_test  = preprocessing.normalize(normalized_X_test, axis=1) # This prevents states with norms not equal to 1
+        
+        if classical_classifier: 
+            clf = one_vs_classifier(classifier).fit(normalized_X_train, y_train)  
+        else:
+            clf = one_vs_classifier(
+                    IQCClassifier(
+                        classifier_function=classifier_function, 
+                        dic_classifier_params=dic_classifier_params,
+                        dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)
+
+        weights = clf.estimators_[0].weight_ 
+        score = clf.score(normalized_X_test, y_test) # This is the accuracy score
+        f1score = f1_score(clf.predict(normalized_X_test), y_test, average='macro', zero_division=0)
+
+        if not(classical_classifier):
+            n_classes = len(clf.classes_)
+
+            while len(negativities) < n_classes:
+                '''print("Adding new class to negativities and entropies")'''
+                negativities.append([])
+                entropies.append([])
+            '''print("Neg Len:", len(negativities))
+            print('Classes:', clf.classes_)
+            print('Estimator Lenght:', len(clf.estimators_))
+            print('Estimator:', clf.estimators_[0])'''
+            index = 0
+            for estimator in clf.estimators_:#o problema tá aqui, pois o sklearn não está retornando o mesmo número de estimadores que o número de classes
+                # negativities variable will look like this:
+                # negativities[0] = all folds mean(negativity) for class 0 - which means that len(negativities[0]) = k_folds;
+                # so if we want to take average negativity of class 0 for all folds, we need to take mean(negativities[0]).
+                # Same goes for entropies    
+                '''print("Estimator", index, "Negativity:", estimator.negativity_)'''
+                negativities[index].append(estimator.negativity_)
+                entropies[index].append(estimator.entropy_)
+                index = index + 1
+
+        scores.append(score)
+        f1scores.append(f1score)
+
+        if print_each_fold_metric:
+            y_pred = clf.predict(normalized_X_test)
+            print("K-Fold #" + str(i))
+
+            # Since negativities and Entropies gets the mean per fold, the info we want is in the last one.
+            #print("Mean negativities for all classes:", [neg[-1] for neg in negativities])
+
+            # Actual report
+            print(classification_report(y_test, y_pred, zero_division=0))
+            print("-------------------------------------------------------------------------------------------------------------------")
+    
+    if print_avg_metric:
+        print("AVG: Scores =", np.mean(scores),'\n',
+              "F1-Scores =", np.mean(f1scores),'\n')
+
+    output_dict = {}
+    output_dict["negativities"] = negativities
+    return scores, f1scores, output_dict, weights
+
+
+def execute_training_test_k_fold_NEW_TRY(
+                X, 
+                y, 
+                k_folds,
+                random_seed,
+                classifier_function=None, 
+                dic_classifier_params={},
+                one_vs_classifier=OneVsRestClassifier, 
+                dic_training_params={},
+                print_each_fold_metric=False,
+                print_avg_metric=True):
+    """
+        Executes IQC classifier against a dataset using classifier_function as classifier.
         Handles binary datasets without wrapping in OneVsRest/OneVsOne.
     """
 

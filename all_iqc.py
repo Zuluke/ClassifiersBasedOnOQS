@@ -283,9 +283,9 @@ def iqc_classifier(vector_x,
     # IQC
     
     """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
+        Applies the a modified version of IQC classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
         
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
+        It differs from the original IQC by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
 
         After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
         
@@ -300,7 +300,7 @@ def iqc_classifier(vector_x,
         - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
         - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
 
-        To have the original ICQ Classifier, you can have:
+        To have the original IQC Classifier, you can have:
         normalize_x = False
         normalize_w = False
         dic_classifier_params["load_inputvector_env_state"] = False
@@ -387,7 +387,7 @@ def iqc_classifier(vector_x,
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
         output_dict["negativity"] = get_negativity(p_out, [2, N])
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
@@ -397,7 +397,7 @@ def iqc_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
@@ -413,7 +413,7 @@ def iqc_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -424,7 +424,7 @@ def iqc_classifier(vector_x,
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
         output_dict["entropy"] = get_entropy(p_out)
         
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -443,9 +443,9 @@ def iqc_ail_classifier(vector_x,
                    N_qubits_tgt=None):
     # IQC-AIL
     """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
+        Applies the a modified version of IQC classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
         
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
+        It differs from the original IQC by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
 
         After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
         
@@ -460,7 +460,7 @@ def iqc_ail_classifier(vector_x,
         - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
         - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
 
-        To have the original ICQ Classifier, you can have:
+        To have the original IQC Classifier, you can have:
         normalize_x = False
         normalize_w = False
         dic_classifier_params["load_inputvector_env_state"] = False
@@ -554,7 +554,7 @@ def iqc_ail_classifier(vector_x,
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
         output_dict["negativity"] = get_negativity(p_out, [2, N])
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
@@ -564,7 +564,7 @@ def iqc_ail_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
@@ -580,7 +580,7 @@ def iqc_ail_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -591,7 +591,7 @@ def iqc_ail_classifier(vector_x,
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
         output_dict["entropy"] = get_entropy(p_out)
         
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -616,9 +616,9 @@ def iqcpq_classifier(vector_x,
     else:
         raise Exception("In IQCpQ model, input N_qubits and N_qubits_tgt are necessary.")
     """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
+        Applies the a modified version of IQC classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
         
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
+        It differs from the original IQC by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
 
         After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
         
@@ -633,7 +633,7 @@ def iqcpq_classifier(vector_x,
         - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
         - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
 
-        To have the original ICQ Classifier, you can have:
+        To have the original IQC Classifier, you can have:
         normalize_x = False
         normalize_w = False
         dic_classifier_params["load_inputvector_env_state"] = False
@@ -719,7 +719,7 @@ def iqcpq_classifier(vector_x,
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
         output_dict["negativity"] = get_negativity(p_out, [2**N_qubits_tgt, N])
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
@@ -729,7 +729,7 @@ def iqcpq_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
@@ -745,7 +745,7 @@ def iqcpq_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -756,7 +756,7 @@ def iqcpq_classifier(vector_x,
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
         output_dict["entropy"] = get_entropy(p_out)
         
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -777,9 +777,9 @@ def iqcndsE_classifier(vector_x,
     # IQC Non Diagonal sigmaE: all elements of sigmaE are occupied
 
     """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
+        Applies the a modified version of IQC classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
         
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
+        It differs from the original IQC by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
 
         After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
         
@@ -794,7 +794,7 @@ def iqcndsE_classifier(vector_x,
         - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
         - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
 
-        To have the original ICQ Classifier, you can have:
+        To have the original IQC Classifier, you can have:
         normalize_x = False
         normalize_w = False
         dic_classifier_params["load_inputvector_env_state"] = False
@@ -882,7 +882,7 @@ def iqcndsE_classifier(vector_x,
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
         output_dict["negativity"] = get_negativity(p_out, [2, N])
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
@@ -892,7 +892,7 @@ def iqcndsE_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
@@ -908,7 +908,7 @@ def iqcndsE_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -919,7 +919,7 @@ def iqcndsE_classifier(vector_x,
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
         output_dict["entropy"] = get_entropy(p_out)
         
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -939,9 +939,9 @@ def iqc_angle_classifier(vector_x,
                    N_layers=None):
     # IQC-Angle Embedding
     """
-        Applies the a modified version of ICQ classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
+        Applies the a modified version of IQC classifier using only the math behind the Quantum Classifier described in Interactive Quantum Classifier Inspired by Quantum Open System Theory article. 
         
-        It differs from the original ICQ by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
+        It differs from the original IQC by adding a new component to Sigma Q: sigmaH, which corresponds to a Haddamard's gate. Another difference is that we load the input in the environment instead of having a combination of weights and inputs in sigmaE.
 
         After doing so, it gets the result of Equation #20 and returns Z as the predicted class and the probability of being the class 1.
         
@@ -956,7 +956,7 @@ def iqc_angle_classifier(vector_x,
         - ending_hadamard_gate (int) =  adds a Hadamard gate after the U operator
         - use_exponential_on_input (boolean) = does the Euler exponential on the input data after normalizing (if applied)
 
-        To have the original ICQ Classifier, you can have:
+        To have the original IQC Classifier, you can have:
         normalize_x = False
         normalize_w = False
         dic_classifier_params["load_inputvector_env_state"] = False
@@ -1054,7 +1054,7 @@ def iqc_angle_classifier(vector_x,
     if "calculate_negativity" in dic_classifier_params and dic_classifier_params["calculate_negativity"]:
         output_dict["negativity"] = get_negativity(p_out.data, [2, N])
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/evolution_calc.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "p_cog_new = " + generate_output_matrix_string(p_cog_new) + ";\n"
@@ -1064,7 +1064,7 @@ def iqc_angle_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/ins_and_outs.txt', 'a') as file:
         #     string_to_write = "\nvector_x = " + generate_output_matrix_string(vector_x) + ";\n"\
         #                     + "vector_w = " + generate_output_matrix_string(vector_w) + ";\n"\
         #                     + "sigmaQ = " + generate_output_matrix_string(sigmaQ) + ";\n"\
@@ -1080,7 +1080,7 @@ def iqc_angle_classifier(vector_x,
         #     file.write("\n")
         #     file.write("--------------------------------------------------------------------------------------------------------")
 
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/negativity.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n - Negativity = " + str(output_dict["negativity"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -1091,7 +1091,7 @@ def iqc_angle_classifier(vector_x,
     if "calculate_entropy" in dic_classifier_params and dic_classifier_params["calculate_entropy"]:
         output_dict["entropy"] = get_entropy(p_out.data)
         
-        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/icq-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
+        # with open('C:/Users/Eduardo Barreto/Desktop/Mestrado/IQC-studies/experiments/Iris/Entanglement/in_out/entropy.txt', 'a') as file:
         #     string_to_write = "\np_out = " + generate_output_matrix_string(p_out) + ";\n\n -Entropy = " + str(output_dict["entropy"])
         #     file.write(string_to_write)
         #     file.write("\n")
@@ -1173,16 +1173,16 @@ def update_batched_weights(weights_list, accumulated_loss, n, coupling_constants
     
 class IQCClassifier(ClassifierMixin, BaseEstimator):
     """
-        Returns an Scikit-Learn based estimator that uses ICQ classificator (https://ieeexplore.ieee.org/document/9533917) to classify instances.
+        Returns an Scikit-Learn based estimator that uses IQC classificator (https://ieeexplore.ieee.org/document/9533917) to classify instances.
 
         It estimates only binary classifications. For multi-class problems, you can use e.g. sklearn.multiclass.OneVsOneClassifier or sklearn.multiclass.OneVsRestClassifier.
 
         Attributes:
-            classifier_function (fun): check /helpers/icq_executions.py file to see available functions
+            classifier_function (fun): check /helpers/IQC_executions.py file to see available functions
 
             dic_training_params["accuracy_succ"] (float): accuracy considered as successful training.
 
-            dic_training_params["sigma_q_params"] (4 sized array): weights for sigma Q sum. See ../helpers/icq_methods.get_weighted_sigmaQ for more info.
+            dic_training_params["sigma_q_params"] (4 sized array): weights for sigma Q sum. See ../helpers/IQC_methods.get_weighted_sigmaQ for more info.
 
             dic_training_params["max_iter"] (int): max number of training epochs.
 
@@ -1236,7 +1236,7 @@ class IQCClassifier(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y):
         """
-            Trains the ICQ classifier using X as instances attributes and y as instances classes.
+            Trains the IQC classifier using X as instances attributes and y as instances classes.
 
             To have a fair training, it replicates the minority class to have the same number of instances as the majority class. See ../helpers/database_helpers.replicate_classes for more info or to change the replication approach.
 
@@ -1499,7 +1499,7 @@ def execute_training_test_k_fold(
                 print_each_fold_metric=False,
                 print_avg_metric=True):
     """
-        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/icq_executions.py for more info).
+        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/IQC_executions.py for more info).
         As for datasets, we need it to return a pair X, y. See database_helpers for examples
     """
 
@@ -1609,7 +1609,7 @@ def execute_training_test_k_fold_two_classes(
                 print_each_fold_metric=False,
                 print_avg_metric=True):
     """
-        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/icq_executions.py for more info).
+        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/IQC_executions.py for more info).
         As for datasets, we need it to return a pair X, y. See database_helpers for examples
     """
 
@@ -1705,7 +1705,6 @@ def execute_training_test_k_fold_two_classes(
     output_dict = {}
     output_dict["negativities"] = negativities
     return scores, f1scores, output_dict, weights
-
 
 def execute_training_test_k_fold_NEW_TRY(
                 X, 

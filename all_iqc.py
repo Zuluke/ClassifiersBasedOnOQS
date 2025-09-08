@@ -1031,7 +1031,7 @@ def iqc_angle_classifier(vector_x,
         # We can either have Hadamard applied to each instance attribute...
         vector_x_normalized = vector_x / (np.linalg.norm(vector_x) + 1e-16) 
         psi = Statevector.from_int(0, dims=2**N_qubits)
-        M = build_angle_matrix(np.pi*vector_x_normalized, N_qubits, N_layers=N_layers)
+        M = build_angle_matrix(2*np.pi*vector_x_normalized, N_qubits, N_layers=N_layers)
         psi = psi.evolve(M)  # Equivalent to M * psi
         p = DensityMatrix(psi.evolve(M))  # Density matrix of the state after evolution M
         """

@@ -56,6 +56,23 @@ def elements_and_index(p):
 def generate_output_matrix_string(matrix):
     return str(Matrix(matrix)).replace("[", "{").replace("]", "}").replace("Matrix", "").replace("(", "").replace(")", "")
 
+def modify_dataset(X_data, N_QUBITS, N_SAMPLES, N_qubits_tgt=1):
+    '''
+        Adicionando zeros para completar o vetor de features
+        Ex: 3 features -> 4 features (2^2) ou 5 features -> 8 features (2^3)
+    '''
+    NF=len(X_data[0])
+    # Calcula o número de zeros a serem adicionados
+    num_zeros = 2**(N_QUBITS - N_qubits_tgt) - NF
+    # Cria array de zeros com shape (num_samples, num_zeros)
+    zeros_to_add = np.zeros((N_SAMPLES, num_zeros))
+    
+    # Concatena horizontalmente
+    if np.log2(NF)%2!=0 and np.log2(NF)!=1:
+        return np.hstack((X_data, zeros_to_add))
+    else:
+        return X_data
+
 def get_sigmaE(vector_x, vector_w, dic_classifier_params, ndse=False):
     """
         Multiplies the input (vector_x) by the weights (vector_w), resulting in a diagonal matrix. 

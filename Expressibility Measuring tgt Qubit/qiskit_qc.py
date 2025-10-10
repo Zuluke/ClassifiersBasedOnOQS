@@ -735,19 +735,19 @@ def statistical_qc(N_samples,N_features,model=None,folder=None,normalization=Fal
 def P_harr(l,u,N):
     return (1-l)**(N-1)-(1-u)**(N-1)
 
-def bins(N_qubits):
+def bins(N_qubits, N_bins=75):
     #Possible Bin
     bins_list=[]
-    for i in range(76):
-        bins_list.append((i)/75)
+    for i in range(N_bins+1):
+        bins_list.append((i)/N_bins)
     #Center of the Bean
     bins_x=[]    
-    for i in range(75):
+    for i in range(N_bins):
         bins_x.append(bins_list[1]+bins_list[i])
     
     #Harr histogram
     P_harr_hist=[]
-    for i in range(75):
+    for i in range(N_bins):
         P_harr_hist.append(P_harr(bins_list[i],bins_list[i+1],2**(N_qubits)))    
     #Imaginary    
     #j=(-1)**(1/2)

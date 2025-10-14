@@ -12,6 +12,7 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn import preprocessing
 from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, make_scorer, roc_auc_score, classification_report
 
@@ -1564,7 +1565,7 @@ def execute_training_test_k_fold(
                         classifier_function=classifier_function, 
                         dic_classifier_params=dic_classifier_params,
                         dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)
-
+            
         weights = clf.estimators_[0].weight_ 
         score = clf.score(normalized_X_test, y_test) # This is the accuracy score
         f1score = f1_score(clf.predict(normalized_X_test), y_test, average='macro', zero_division=0)
@@ -1624,7 +1625,8 @@ def execute_training_test_k_fold_two_classes(
                 one_vs_classifier=OneVsRestClassifier, 
                 dic_training_params={},
                 print_each_fold_metric=False,
-                print_avg_metric=True):
+                print_avg_metric=True,
+                plot_boundary_decision=False):
     """
         Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/IQC_executions.py for more info).
         As for datasets, we need it to return a pair X, y. See database_helpers for examples
@@ -1673,7 +1675,14 @@ def execute_training_test_k_fold_two_classes(
                     IQCClassifier(
                         classifier_function=classifier_function, 
                         dic_classifier_params=dic_classifier_params,
-                        dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)
+                        dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)#
+
+        if plot_boundary_decision:
+            # Debugando a fronteira de decisão
+            boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, normalized_X_test, alpha=0.5, response_method="predict")
+            #boundary_decision.plot()
+            boundary_decision.ax_.scatter(normalized_X_test[:, 0], normalized_X_test[:, 1], c=y_test, edgecolor="black")
+            plt.show()
 
         weights = clf.estimators_[0].weight_ 
         score = clf.score(normalized_X_test, y_test) # This is the accuracy score

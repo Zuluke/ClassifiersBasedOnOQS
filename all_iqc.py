@@ -1626,7 +1626,8 @@ def execute_training_test_k_fold_two_classes(
                 dic_training_params={},
                 print_each_fold_metric=False,
                 print_avg_metric=True,
-                plot_boundary_decision=False):
+                plot_boundary_decision_original=False,
+                plot_boundary_decision_normalized=False):
     """
         Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/IQC_executions.py for more info).
         As for datasets, we need it to return a pair X, y. See database_helpers for examples
@@ -1677,11 +1678,20 @@ def execute_training_test_k_fold_two_classes(
                         dic_classifier_params=dic_classifier_params,
                         dic_training_params=dic_training_params), n_jobs=-1, verbose=1).fit(normalized_X_train, y_train)#).fit(normalized_X_train, y_train)#
 
-        if plot_boundary_decision:
+        y_pred = clf.predict(normalized_X_test)
+
+        if plot_boundary_decision_original:
+            # Debugando a fronteira de decisão
+            boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
+            #boundary_decision.plot()
+            boundary_decision.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_test, edgecolor="black")
+            plt.show()
+        
+        if plot_boundary_decision_normalized:
             # Debugando a fronteira de decisão
             boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, normalized_X_test, alpha=0.5, response_method="predict")
             #boundary_decision.plot()
-            boundary_decision.ax_.scatter(normalized_X_test[:, 0], normalized_X_test[:, 1], c=y_test, edgecolor="black")
+            boundary_decision.ax_.scatter(normalized_X_test[:, 0], normalized_X_test[:, 1], c=y_pred, edgecolor="black")
             plt.show()
 
         weights = clf.estimators_[0].weight_ 

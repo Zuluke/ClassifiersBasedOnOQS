@@ -164,9 +164,9 @@ def blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z):
     return [x_bloch,y_bloch,z_bloch]
     
 # Execute qiskit circuit
-def run_qasm_counts(qc, shots, N_qubits_tgt):
+def run_qasm_counts(qc, shots, N_qubits_tgt, backend='qasm_simulator'):
     qc.measure([i for i in range(N_qubits_tgt)],[i for i in range(N_qubits_tgt)])
-    qasm_simulator = Aer.get_backend("qasm_simulator")
+    qasm_simulator = Aer.get_backend(backend)
     job = qasm_simulator.run(qc, shots=shots)
     result = job.result()
     return result.get_counts()
@@ -813,6 +813,7 @@ def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=Fa
 def conj_reversed_qc(qc: QuantumCircuit):
     
     rev_ops = reversed(qc.data)
+    U_dagger = None
     for gate, qargs, cargs in rev_ops:
         new_gate = gate
         if gate.params:
@@ -824,12 +825,13 @@ def conj_reversed_qc(qc: QuantumCircuit):
                                         params=new_params,
                                         N_features=gate.N_features,
                                         N_qubits_tgt=gate.N_qubits_tgt)
+                U_dagger = new_gate
             else:
                 # Para gates padrão do Qiskit
                 new_gate = gate.__class__(*new_params)
         
         qc.append(new_gate, qargs, cargs)
-    return qc
+    return qc, U_dagger
 
 def conj_reversed_qc_angle(qc: QuantumCircuit):
     """
@@ -1068,11 +1070,15 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         unitary_gate = IQC_Angle_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
 
-    if model=='IQC_AIL': qc=conj_reversed_qc_ail(qc)
-    elif model=='IQC_Angle': qc=conj_reversed_qc_angle(qc)
-    else: qc=conj_reversed_qc(qc)
-    
-    return qc
+    if model=='IQC_AIL': 
+        qc=conj_reversed_qc_ail(qc)
+        return qc, unitary_gate, U_dagger
+    elif model=='IQC_Angle':
+        qc=conj_reversed_qc_angle(qc)
+        return qc
+    else: 
+        qc, U_dagger = conj_reversed_qc(qc)
+        return qc, unitary_gate, U_dagger
 
 """def haar_integral(num_qubits, simulation_samples, N_features=None, model=None):
     '''

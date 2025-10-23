@@ -18,6 +18,7 @@ from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_sc
 
 from qiskit.quantum_info import Operator, Statevector, DensityMatrix, partial_trace
 from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit,Parameter, QuantumRegister, ClassicalRegister, Gate, Measure, ParameterVector
 
 from imblearn.over_sampling import SMOTE
 
@@ -220,7 +221,7 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
         sigmaE=np.diag(X_new)*w.T
     
     if N_qubits_tgt==1:
-        sigma_q_params=np.full(2**N_qubits_tgt,1)
+        sigma_q_params=[1,1,1,0]
         sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=False)
 
     else:
@@ -1685,6 +1686,11 @@ def execute_training_test_k_fold_two_classes(
             boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
             #boundary_decision.plot()
             boundary_decision.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_test, edgecolor="black")
+            plt.title("True labels")
+            plt.show()
+            bound_deci = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
+            bound_deci.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_pred, edgecolor="black")
+            plt.title("Predicted labels")
             plt.show()
         
         if plot_boundary_decision_normalized:

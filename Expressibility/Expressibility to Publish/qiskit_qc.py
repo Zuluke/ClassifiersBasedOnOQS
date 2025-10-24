@@ -853,6 +853,8 @@ def conj_reversed_qc_angle(qc: QuantumCircuit):
                 if isinstance(param, Parameter) and param.name not in param_map:
                     param_map[param] = Parameter(f'conj_{param.name}')
     
+    U_dagger = None
+
     # Segunda passada: adicionar operações invertidas com parâmetros conjugados
     for instruction in reversed(qc.data):
         gate = instruction.operation
@@ -872,8 +874,8 @@ def conj_reversed_qc_angle(qc: QuantumCircuit):
                     num_qubits=gate.num_qubits,
                     params=new_params,
                     N_features=gate.N_features,
-                    N_qubits_tgt=gate.N_qubits_tgt
-                )
+                    N_qubits_tgt=gate.N_qubits_tgt)
+                U_dagger = new_gate
             else:
                 # Gate padrão
                 try:
@@ -887,11 +889,12 @@ def conj_reversed_qc_angle(qc: QuantumCircuit):
         
         extended_qc.append(new_gate, qargs, cargs)
     
-    return extended_qc
+    return extended_qc, U_dagger
 
 def conj_reversed_qc_ail(qc: QuantumCircuit):
     rev_ops = reversed(qc.data)
     a=0
+    U_dagger = None
     for gate, qargs, cargs in rev_ops:
         new_gate = gate
         if a==0:
@@ -908,11 +911,12 @@ def conj_reversed_qc_ail(qc: QuantumCircuit):
                                     params=new_params,
                                     N_features=gate.N_features,
                                     N_qubits_tgt=gate.N_qubits_tgt)
+            U_dagger = new_gate
             # Original handling for other gates
             #new_gate = gate.inverse() if hasattr(gate, 'inverse') else gate
         a+=1
         qc.append(new_gate, qargs, cargs)
-    return qc
+    return qc, U_dagger
 
 class ParamInitializeGate(Gate):
     def __init__(self, num_qubits, params, N_features):
@@ -1071,11 +1075,11 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         qc.append(unitary_gate, range(N_qubits))
 
     if model=='IQC_AIL': 
-        qc=conj_reversed_qc_ail(qc)
+        qc, U_dagger=conj_reversed_qc_ail(qc)
         return qc, unitary_gate, U_dagger
     elif model=='IQC_Angle':
-        qc=conj_reversed_qc_angle(qc)
-        return qc
+        qc, U_dagger=conj_reversed_qc_angle(qc)
+        return qc, unitary_gate, U_dagger
     else: 
         qc, U_dagger = conj_reversed_qc(qc)
         return qc, unitary_gate, U_dagger

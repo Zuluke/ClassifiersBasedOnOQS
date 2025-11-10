@@ -17,6 +17,8 @@ from toqito import state_props
 
 import qutip
 
+from scipy.sparse import block_diag, csr_matrix
+
 from scipy.stats import unitary_group
 from scipy.linalg import expm as expMatrix
 import scipy.linalg
@@ -807,8 +809,62 @@ def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=Fa
         sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=True)
 
     #Operador Unitário
-    U=np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
+    #U_exp = np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
+    U = np.matrix(np.kron(np.identity(2**N_qubits_tgt),np.cos(np.sqrt(3)*sigmaE)) + (1j/np.sqrt(3))*np.kron(sigmaQ,np.sin(np.sqrt(3)*sigmaE)), dtype=complex)
     return U
+
+"""def get_U_sparse(tx, tw):
+    # Definição da matriz sigmaQ
+    sigmaQ = np.array([[1, 1-1j],
+                    [1+1j, 1]], dtype=complex)
+
+    def exp_i_lambda_sigmaQ(lambda_val):
+        # parâmetros fixos
+        tr2 = 1.0            # tr(sigmaQ)/2
+        s = np.sqrt(2.0)     # já calculado
+        prefactor = np.exp(1j * lambda_val * tr2)  # e^{i lambda * tr/2} = e^{i lambda}
+        c = np.cos(lambda_val * s)
+        si = np.sin(lambda_val * s)
+        M = prefactor * ( c * np.eye(2, dtype=complex) + (1j * si / s) * (sigmaQ - np.eye(2, dtype=complex)) )
+        return M
+
+    # exemplo: vetor de lambdas (os elementos diagonais de sigma_E)
+    lambdas = np.array([tx*tw for tx,tw in zip(tx,tw)])
+
+    # crie a lista de blocos 2x2
+    blocks = [exp_i_lambda_sigmaQ(lam) for lam in lambdas]
+
+    # escolha: construir matriz densa 2m x 2m
+    U_dense = np.block([[blocks[i] if i==j else np.zeros((2,2), dtype=complex) 
+                        for j in range(len(blocks))] 
+                        for i in range(len(blocks))])
+    blocks = [np.array(b, dtype=np.complex128) for b in blocks]
+    U_sparse = block_diag(blocks, format='csr', dtype=np.complex128)
+    # ou — mais eficiente em memória — construir esparso em CSR
+    #U_sparse = block_diag(blocks, format='csr')
+
+    # use U_sparse (ou U_dense) conforme necessidade
+    return U_sparse, U_dense
+
+def get_U_operator_trotterized(params, N_qubits, N_layers=2, t=1.0):
+    '''
+    Gera um circuito trotterizado para aproximar exp(i * kron(sigmaQ, sigmaE))
+    sem construir a matriz completa.
+    '''
+    qc = QuantumCircuit(N_qubits)
+    n_steps = 5  # número de passos de Trotter (ajustável)
+    dt = t / n_steps
+
+    # Aqui, cada sigma é substituído por rotações nos qubits correspondentes.
+    # Exemplo genérico:
+    for _ in range(n_steps):
+        for i in range(N_qubits):
+            qc.rx(2 * params[i] * dt, i)
+            qc.rz(2 * params[i] * dt, i)
+            qc.ry(2 * params[i] * dt, i)
+
+    return qc
+"""
 
 def conj_reversed_qc(qc: QuantumCircuit):
     
@@ -1065,7 +1121,37 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
                 qc = QuantumCircuit(q)
                 param_values = [0]*len(self.params)  # Valores temporários
                 U = get_U_operator_altered(param_values, self.N_features, self.num_qubits, self.N_qubits_tgt, iqcangle=True)
+                #U_sparse, U_dense = get_U_sparse(param_values[:N_features], param_values[N_features:])
+                #qc.unitary(U_dense, range(self.num_qubits))
                 qc.unitary(U, range(self.num_qubits))
+                #qc = get_U_operator_trotterized(param_values, N_qubits=self.num_qubits, N_layers=self.N_layers)
+
+                """self.definition = qc
+                param_values = [param for param in self.params]
+                N_features = self.N_features
+                
+                U = get_U_operator_altered(param_values, self.N_features, self.num_qubits, self.N_qubits_tgt, iqcangle=True)
+                
+                # Ensure the matrix has the correct dimensions
+                expected_dim = 2**self.num_qubits
+                
+                if U.shape != (expected_dim, expected_dim):
+                    print(f"Warning: Reshaping matrix from {U.shape} to ({expected_dim}, {expected_dim})")
+                    
+                    # Option 1: If matrix is too large, take the top-left block
+                    if U.shape[0] >= expected_dim and U.shape[1] >= expected_dim:
+                        U = U[:expected_dim, :expected_dim]
+                    # Option 2: If matrix is too small, pad with identity
+                    elif U.shape[0] < expected_dim or U.shape[1] < expected_dim:
+                        U_padded = np.eye(expected_dim, dtype=complex)
+                        U_padded[:U.shape[0], :U.shape[1]] = U
+                        U = U_padded
+                    else:
+                        raise ValueError(f"Cannot reshape matrix {U.shape} to ({expected_dim}, {expected_dim})")
+                
+                qc = QuantumCircuit(self.num_qubits)
+                qc.unitary(U, range(self.num_qubits))"""
+
                 self.definition = qc
             def validate_parameter(self, parameter):
                 return parameter  # Aceita qualquer parâmetro

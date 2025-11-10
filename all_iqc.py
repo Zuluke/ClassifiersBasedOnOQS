@@ -24,6 +24,8 @@ from imblearn.over_sampling import SMOTE
 
 from toqito import state_props
 
+from scipy.sparse import block_diag, csr_matrix
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
@@ -174,10 +176,10 @@ def get_U_operator(sigmaQ, sigmaE):
     """
     return np.matrix(expMatrix(1j*np.kron(sigmaQ, sigmaE)))
 
-def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False, iqcangle=False):
-    """
-        Creating sigma operators and U unitary operators
-    """
+def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False, iqcangle=False):
+    X = params[:N_features]
+    vw = params[N_features:]
+    #Montando os sigmas
     if iqcail==True:
         N_qubits_tgt=1
         X_new=np.array(X)
@@ -190,14 +192,13 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
         sigmaE=np.diag(w)
 
     elif iqcndse==True:
-        N_qubits_tgt=1
-        X_new=np.array(X)
+        atx=np.array(X)
         atw=np.array(vw)
         if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
             for k in range(2**(N_qubits-N_qubits_tgt) - N_features):
                 atw=np.append(atw,0)
-                X_new=np.append(X_new,0)
-        X_new=np.matrix(X_new)
+                atx=np.append(atx,0)
+        X_new=np.matrix(atx)
         w=np.matrix(atw)
         # Ensure sigmaE is hermitian
         sigmaE = X_new.T @ w + (X_new.T @ w).T
@@ -205,11 +206,15 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
     elif iqcangle==True:
         X_new=np.array(X)
         # Verifica se precisa ajustar sigmaE
-        sigmaE = np.diag(vw)
+        sigmaE = vw
         # Calcula o operador unitário U
-        dim_circuit = 2 ** (N_qubits - 1)
+        dim_circuit = 2 ** (N_qubits-1)
         dim_sigmaE = sigmaE.shape[0]
-        sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        #sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        sigmaE = np.kron(np.ones(dim_circuit // dim_sigmaE), sigmaE)
+        if np.log2(sigmaE.shape[0])%2!=0 and np.log2(sigmaE.shape[0])!=1: # Padding sigmaE
+            for k in range(2**(N_qubits-N_qubits_tgt) - sigmaE.shape[0]):
+                sigmaE=np.append(sigmaE,0)
     
     else:
         w = np.array(vw)
@@ -221,7 +226,7 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
         sigmaE=np.diag(X_new)*w.T
     
     if N_qubits_tgt==1:
-        sigma_q_params=[1,1,1,0]
+        sigma_q_params=np.full(2**N_qubits_tgt,1)
         sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=False)
 
     else:
@@ -229,7 +234,8 @@ def get_U_operator_altered(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=Fal
         sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=True)
 
     #Operador Unitário
-    U=np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
+    #U_exp = np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
+    U = np.matrix(np.kron(np.identity(2**N_qubits_tgt),np.diag(np.cos(np.sqrt(3)*sigmaE))) + (1j/np.sqrt(3))*np.kron(sigmaQ,np.diag(np.sin(np.sqrt(3)*sigmaE))), dtype=complex)
     return U
 
 def get_p(psi):

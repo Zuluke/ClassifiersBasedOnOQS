@@ -13,8 +13,6 @@ from qiskit.quantum_info import Statevector,partial_trace, DensityMatrix, Operat
 
 from typing import Union
 
-from toqito import state_props
-
 import qutip
 
 from scipy.sparse import block_diag, csr_matrix
@@ -186,9 +184,21 @@ def get_negativity(rho, dim):
     """
         Returns the Negativity associated with densitiy matrix rho.
         See definition at: https://en.wikipedia.org/wiki/Negativity_(quantum_mechanics)
-        See implementation at: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.negativity.html
     """
+    """
+        Returns the Negativity associated with densitiy matrix rho.
+        See definition at: https://en.wikipedia.org/wiki/Negativity_(quantum_mechanics)
+        See implementation at: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.negativity.html
+    
     return state_props.negativity(rho, dim)
+    """
+    
+    d1, d2 = dim
+    rho_reshaped = rho.reshape(d1, d2, d1, d2)
+    pt_rho = rho_reshaped.transpose(0, 3, 2, 1).reshape(d1*d2, d1*d2)
+    eigenvalues = np.linalg.eigvals(pt_rho)
+    return float(np.sum(np.abs(eigenvalues[eigenvalues < 0])))
+
 
 # Builds up the model NOT to calculate expressibility
 def circuit_model(data, contador, w, counter, qubits, N_qubits, N_features, N_qubits_tgt=1, model=None,

@@ -795,11 +795,17 @@ def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=Fa
     elif iqcangle==True:
         X_new=np.array(X)
         # Verifica se precisa ajustar sigmaE
-        sigmaE = np.diag(vw)
+        sigmaE = vw
         # Calcula o operador unitário U
-        dim_circuit = 2 ** (N_qubits - 1)
-        dim_sigmaE = sigmaE.shape[0]
-        sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        dim_circuit = 2 ** (N_qubits-1)
+        dim_sigmaE = len(sigmaE)
+        #sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        sigmaE = np.kron(np.ones(dim_circuit // dim_sigmaE), sigmaE)
+        if np.log2(len(sigmaE))%2!=0 and np.log2(len(sigmaE))!=1: # Padding sigmaE
+            for k in range(2**(N_qubits-N_qubits_tgt) - len(sigmaE)):
+                sigmaE=np.append(sigmaE,0)
+
+        sigmaE=np.diag(sigmaE)
     
     else:
         w = np.array(vw)
@@ -1178,7 +1184,7 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         return qc, unitary_gate, U_dagger
     else: 
         qc, U_dagger = conj_reversed_qc(qc)
-        return qc, unitary_gate, U_dagger
+        return qc
 
 """def haar_integral(num_qubits, simulation_samples, N_features=None, model=None):
     '''

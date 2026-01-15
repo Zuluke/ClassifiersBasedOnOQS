@@ -84,7 +84,7 @@ def get_weighted_sigmaQ(param,iqcpq=False):
         diagonal=np.full(n,1)
         diagonal[-1] = -np.sum(diagonal[:-1])
         
-        off_diagonal=np.full((n,n),1) + 1j*np.full((n,n),1)
+        off_diagonal=np.full((n,n),1) - 1j*np.full((n,n),1)
         matrix=np.zeros((n,n),dtype=complex)
         np.fill_diagonal(matrix, diagonal)  # Set diagonal elements
         for i in range(n):

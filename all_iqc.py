@@ -703,13 +703,13 @@ def iqcpq_classifier(vector_x,
     p_env = np.ones((N,1))/np.sqrt(N)
     p_env = get_p(p_env)
 
-    # Our first p_cog will be the original one, but will change overtime
+    # Our first p_cog will be arbitrary
     p_cog = np.ones((2**N_qubits_tgt,1)) / np.sqrt(2**N_qubits_tgt)
     #print("Shape p_cog:", p_cog.shape)
     # Eq #18
     p_cog = get_p(p_cog)
     #print("Shape p_cog:", p_cog.shape)
-    # We'll update the p_cog for every env we have
+    
     p_cog_new = p_cog
     U_operators = []
     for vector_w in vector_ws:

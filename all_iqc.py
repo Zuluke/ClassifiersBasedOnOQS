@@ -1634,10 +1634,11 @@ def execute_training_test_k_fold_two_classes(
                 print_each_fold_metric=False,
                 print_avg_metric=True,
                 plot_boundary_decision_original=False,
-                plot_boundary_decision_normalized=False):
+                plot_boundary_decision_normalized=False,
+                save_last_plot_boundary_decision_original=False):
     """
-        Executes IQC classifier against an dataset using classifier_function as classifier (see /helpers/IQC_executions.py for more info).
-        As for datasets, we need it to return a pair X, y. See database_helpers for examples
+        Executes IQC classifier against an dataset using classifier_function as classifier.
+        As for datasets, we need it to return a pair X, y.
     """
 
     if "classical_classifier" in dic_training_params:
@@ -1688,7 +1689,9 @@ def execute_training_test_k_fold_two_classes(
         y_pred = clf.predict(normalized_X_test)
 
         if plot_boundary_decision_original:
-            # Debugando a fronteira de decisão
+            """
+                Plots the decision boundary of the fold using the original X_test (not normalized).
+            """
             boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
             #boundary_decision.plot()
             boundary_decision.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_test, edgecolor="black")
@@ -1698,7 +1701,16 @@ def execute_training_test_k_fold_two_classes(
             bound_deci.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_pred, edgecolor="black")
             plt.title("Predicted labels")
             plt.show()
-        
+        if save_last_plot_boundary_decision_original and i == k_folds - 1: 
+            """
+                Saves the decision boundary of the last fold using the original X_test (not normalized).
+            """
+            bound_deci = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
+            bound_deci.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_pred, edgecolor="black")
+            plt.title("Predicted labels")
+            plt.savefig("boundary_decision_original.png")
+            plt.show()
+
         if plot_boundary_decision_normalized:
             # Debugando a fronteira de decisão
             boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, normalized_X_test, alpha=0.5, response_method="predict")

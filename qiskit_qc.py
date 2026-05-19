@@ -13,7 +13,7 @@ from qiskit.quantum_info import Statevector,partial_trace, DensityMatrix
 
 from toqito import state_props
 
-import qutip
+#import qutip
 
 from scipy.stats import unitary_group
 from scipy.linalg import expm as expMatrix

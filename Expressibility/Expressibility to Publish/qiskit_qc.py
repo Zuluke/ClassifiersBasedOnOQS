@@ -13,8 +13,6 @@ from qiskit.quantum_info import Statevector,partial_trace, DensityMatrix, Operat
 
 from typing import Union
 
-import qutip
-
 from scipy.sparse import block_diag, csr_matrix
 
 from scipy.stats import unitary_group
@@ -156,13 +154,6 @@ def get_U(X, vw, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False,
     U=np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
     return U,X_new
 
-# Outputs the Bloch Vector 
-def blochvector(rho_cog,matriz_pauli_x,matriz_pauli_y,matriz_pauli_z):
-    x_bloch = np.trace(matriz_pauli_x@rho_cog.data)
-    y_bloch = np.trace(matriz_pauli_y@rho_cog.data)
-    z_bloch = np.trace(matriz_pauli_z@rho_cog.data)
-    return [x_bloch,y_bloch,z_bloch]
-    
 # Execute qiskit circuit
 def run_qasm_counts(qc, shots, N_qubits_tgt, backend='qasm_simulator'):
     qc.measure([i for i in range(N_qubits_tgt)],[i for i in range(N_qubits_tgt)])
@@ -557,44 +548,6 @@ def size_divide(lista):
     
     return grupos
 
-def esfera_bloch(X,weights,qubits,N_qubits,N_features,counter,model=None,folder=None,printar_esf=False,norma=None,N_qubits_tgt=None):
-    if model==None:
-        raise Exception("Input model is necessary. Available models: 'IQC', 'IQC_AIL', 'IQCpQ', 'IQCNDsE_wx', 'IQCNDsE_Dx', and 'IQCNDsE'.")#, and 'IQC_AIL_RU'.")
-    
-    if model=='IQCpQ' and N_qubits_tgt==None:
-        raise Exception("In 'IQCpQ' model, giving 'N_qubit_tgt' is required.")
-    
-    if folder==None:
-        raise Exception("No folder selected.")
-    
-    point_states=[]
-    u3_params=[]
-    negativity=[]
-    for k in range(len(X)):
-        bloch,params,neg=circuit_model(X[k],k,weights[k], counter, qubits, N_qubits, N_features,folder=folder,model=model,N_qubits_tgt=N_qubits_tgt)
-        point_states.append(bloch)
-        u3_params.append(params)
-        negativity.append(neg)
-        counter+=1
-
-
-    b = qutip.Bloch()
-    b.point_default_color=['k']
-    b.point_marker=['o']
-    b.point_size=[10, 10, 10, 10]
-    for k in range(len(point_states)):
-        b.add_points(point_states[k])
-    b.render()
-    if printar_esf==True:
-        b.show()
-
-    bb = b.fig
-    if norma:
-        bb.savefig(fname=folder+f'/Bloch_geral_NF{N_features}_{model}_{norma}.svg')
-    else:
-        bb.savefig(fname=folder+f'/Bloch_geral_NF{N_features}_{model}.svg')
-    return u3_params,negativity
-
 def plot_histogram_qc(u3_list,neg_list,N_features,folder=None,norma=None, model=None):
     
     if model==None:
@@ -765,7 +718,7 @@ def bins(N_qubits, N_bins=75):
     #j=(-1)**(1/2)
     return P_harr_hist, bins_x, bins_list
 
-def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False, iqcangle=False):
+def get_U_operator_alteredOLD(params, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False, iqcangle=False):
     X = params[:N_features]
     vw = params[N_features:]
     #Montando os sigmas
@@ -829,6 +782,63 @@ def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=Fa
     U = np.matrix(np.kron(np.identity(2**N_qubits_tgt),np.cos(np.sqrt(3)*sigmaE)) + (1j/np.sqrt(3))*np.kron(sigmaQ,np.sin(np.sqrt(3)*sigmaE)), dtype=complex)
     return U
 
+def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=False, iqcndse=False, iqcangle=False):
+    X = params[:N_features]
+    vw = params[N_features:]
+    
+    # CORREÇÃO: Calcular o tamanho esperado de forma consistente
+    expected_size = 2 ** (N_qubits - N_qubits_tgt)
+    
+    # Converter para arrays numpy
+    X_new = np.array(X, dtype=float)
+    w = np.array(vw, dtype=float)
+    
+    # CORREÇÃO: Truncar ou expandir para o tamanho esperado (NÃO duplicar padding)
+    if len(X_new) != expected_size:
+        if len(X_new) > expected_size:
+            X_new = X_new[:expected_size]
+            w = w[:expected_size]
+        else:
+            # Se for menor, faz padding
+            pad_size = expected_size - len(X_new)
+            X_new = np.pad(X_new, (0, pad_size), constant_values=0)
+            w = np.pad(w, (0, pad_size), constant_values=0)
+    
+    # Garantir que ambos têm o mesmo comprimento
+    assert len(X_new) == len(w) == expected_size, f"Size mismatch: X={len(X_new)}, w={len(w)}, expected={expected_size}"
+    
+    if iqcail:
+        sigmaE = np.diag(w)
+        
+    elif iqcndse:
+        X_new = np.matrix(X_new)
+        w = np.matrix(w)
+        sigmaE = X_new.T @ w + (X_new.T @ w).T
+        
+    elif iqcangle:
+        sigmaE = np.diag(w)
+        dim_circuit = 2 ** (N_qubits - 1)
+        dim_sigmaE = sigmaE.shape[0]
+        sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
+        
+    else:  # Modelo padrão IQC, IQCpQ
+        # CORREÇÃO PRINCIPAL: Criar sigmaE com a dimensionalidade correta
+        # sigmaE deve ser uma matriz diagonal onde cada elemento diagonal é X_new[i] * w[i]
+        sigmaE = np.diag(X_new * w)  # Multiplicação elemento a elemento
+    
+    # Construção do sigmaQ
+    if N_qubits_tgt == 1:
+        sigma_q_params = np.full(2 ** N_qubits_tgt, 1)
+        sigmaQ = get_weighted_sigmaQ(sigma_q_params, iqcpq=False)
+    else:
+        sigma_q_params = np.full(2 ** N_qubits_tgt, 1)
+        sigmaQ = get_weighted_sigmaQ(sigma_q_params, iqcpq=True)
+    
+    # Operador Unitário
+    kron_product = np.kron(sigmaQ, sigmaE)
+    U = np.matrix(expMatrix(1j * kron_product))
+    
+    return U
 """def get_U_sparse(tx, tw):
     # Definição da matriz sigmaQ
     sigmaQ = np.array([[1, 1-1j],
@@ -990,7 +1000,7 @@ def conj_reversed_qc_ail(qc: QuantumCircuit):
         qc.append(new_gate, qargs, cargs)
     return qc, U_dagger
 
-class ParamInitializeGate(Gate):
+class ParamInitializeGateOLD(Gate):
     def __init__(self, num_qubits, params, N_features):
         super().__init__("param_init", num_qubits, params)
         self.N_features = N_features
@@ -1007,6 +1017,72 @@ class ParamInitializeGate(Gate):
             
         qc.initialize(params, q[:])
         self.definition = qc
+
+class ParamInitializeGate(Gate):
+    def __init__(self, num_qubits, params, N_features):
+        super().__init__("param_init", num_qubits, params)
+        self.N_features = N_features
+        
+    def _define(self):
+        q = QuantumRegister(self.num_qubits)
+        qc = QuantumCircuit(q)
+        
+        # Convert parameters to normalized state vector
+        params_array = np.array([float(p) for p in self.params], dtype=complex)
+        norm = np.linalg.norm(params_array)
+        if norm > 0:
+            params_array = params_array / norm
+        
+        # Verificar se o comprimento é uma potência de 2
+        n_qubits_needed = int(np.ceil(np.log2(len(params_array))))
+        if len(params_array) != 2**n_qubits_needed:
+            # Fazer padding para a próxima potência de 2
+            target_size = 2**n_qubits_needed
+            padded = np.zeros(target_size, dtype=complex)
+            padded[:len(params_array)] = params_array
+            params_array = padded
+            # Ajustar o número de qubits
+            qc = QuantumCircuit(n_qubits_needed)
+            qc.initialize(params_array, range(n_qubits_needed))
+        else:
+            qc.initialize(params_array, q[:])
+        
+        self.definition = qc
+    
+    def __str__(self):
+        return f"param_init({self.params})"
+    
+    # Método para evitar decomposição automática
+    def inverse(self):
+        return self
+
+
+"""elif model == 'IQC_AIL':
+        qc = QuantumCircuit(N_qubits,N_qubits_tgt)
+        init_gate = ParamInitializeGate(N_qubits-1, params[:N_features], N_features=N_features)
+        qc.append(init_gate, range(1,N_qubits))
+        qc.h(0)
+        
+        class IQC_AIL_UGate(Gate):
+            def __init__(self, name, num_qubits, params, N_features, N_qubits_tgt):
+                super().__init__(name, num_qubits, params)
+                self.N_features = N_features
+                self.N_qubits_tgt = N_qubits_tgt
+                
+            def _define(self):
+                q = QuantumRegister(self.num_qubits, 'q')
+                qc = QuantumCircuit(q)
+                param_values = [0]*len(self.params)  # Valores temporários
+                U = get_U_operator_altered(param_values, self.N_features, self.num_qubits, self.N_qubits_tgt, iqcail=True)
+                qc.unitary(U, range(self.num_qubits))
+                self.definition = qc
+            def validate_parameter(self, parameter):
+                return parameter  # Aceita qualquer parâmetro
+        
+        unitary_gate = IQC_AIL_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
+        qc.append(unitary_gate, range(N_qubits))
+    """
+
 
 def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=None):
     if model == 'IQC':
@@ -1032,7 +1108,7 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         unitary_gate = IQC_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
 
-    if model == 'IQCpQ':
+    elif model == 'IQCpQ':
         qc = QuantumCircuit(N_qubits, N_qubits_tgt)
         qc.h(range(N_qubits))
         
@@ -1055,7 +1131,7 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         unitary_gate = IQCpQ_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
     
-    if model == 'IQCNDsE':
+    elif model == 'IQCNDsE':
         qc = QuantumCircuit(N_qubits, N_qubits_tgt)
         qc.h(range(N_qubits))
         
@@ -1078,12 +1154,32 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
         unitary_gate = IQCNDsE_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
 
-    if model == 'IQC_AIL':
-        qc = QuantumCircuit(N_qubits,N_qubits_tgt)
-        init_gate = ParamInitializeGate(N_qubits-1, params[:N_features], N_features=N_features)
-        qc.append(init_gate, range(1,N_qubits))
+    
+    elif model == 'IQC_AIL':
+        # Criar o circuito
+        qc = QuantumCircuit(N_qubits, N_qubits_tgt)
+        
+        # Verificar o tamanho necessário para a inicialização
+        n_env_qubits = N_qubits - 1
+        required_size = 2 ** n_env_qubits
+        
+        # Ajustar os parâmetros para o tamanho correto
+        init_params = params[:N_features]
+        
+        # Se o número de features não corresponde ao espaço de Hilbert, fazer padding
+        if N_features < required_size:
+            # Adicionar parâmetros zero para padding
+            padding_params = [Parameter(f'pad_{i}') for i in range(required_size - N_features)]
+            all_init_params = list(init_params) + padding_params
+        else:
+            all_init_params = list(init_params)[:required_size]
+        
+        # Criar o gate de inicialização
+        init_gate = ParamInitializeGate(n_env_qubits, all_init_params, N_features=len(all_init_params))
+        qc.append(init_gate, range(1, N_qubits))
         qc.h(0)
         
+        # Gate U personalizado para IQC_AIL
         class IQC_AIL_UGate(Gate):
             def __init__(self, name, num_qubits, params, N_features, N_qubits_tgt):
                 super().__init__(name, num_qubits, params)
@@ -1092,18 +1188,30 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
                 
             def _define(self):
                 q = QuantumRegister(self.num_qubits, 'q')
-                qc = QuantumCircuit(q)
-                param_values = [0]*len(self.params)  # Valores temporários
+                qc_def = QuantumCircuit(q)
+                param_values = [0] * len(self.params)
                 U = get_U_operator_altered(param_values, self.N_features, self.num_qubits, self.N_qubits_tgt, iqcail=True)
-                qc.unitary(U, range(self.num_qubits))
-                self.definition = qc
+                qc_def.unitary(U, range(self.num_qubits))
+                self.definition = qc_def
+                
             def validate_parameter(self, parameter):
-                return parameter  # Aceita qualquer parâmetro
+                return parameter
+            
+            def __str__(self):
+                return f"U_IQC_AIL"
+            
+            def inverse(self):
+                return self
         
         unitary_gate = IQC_AIL_UGate(f'U_{model}', N_qubits, params, N_features, N_qubits_tgt)
         qc.append(unitary_gate, range(N_qubits))
+        
+        # Adicionar reverso conjugado (se necessário)
+        # qc, _, _ = conj_reversed_qc_ail(qc)  # Comente esta linha se causar problemas
+        
+        return qc
     
-    if model == 'IQC_Angle':
+    elif model == 'IQC_Angle':
         qreg=QuantumRegister(N_qubits, 'q')
         creg=ClassicalRegister(N_qubits_tgt)
         qc = QuantumCircuit(qreg, creg)     
@@ -1178,7 +1286,7 @@ def circuitm(model: str, N_features, N_qubits, N_qubits_tgt, params, N_layers=No
 
     if model=='IQC_AIL': 
         qc, U_dagger=conj_reversed_qc_ail(qc)
-        return qc, unitary_gate, U_dagger
+        return qc#, unitary_gate, U_dagger
     elif model=='IQC_Angle':
         qc, U_dagger=conj_reversed_qc_angle(qc)
         return qc, unitary_gate, U_dagger

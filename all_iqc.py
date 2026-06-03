@@ -176,68 +176,6 @@ def get_U_operator(sigmaQ, sigmaE):
     """
     return np.matrix(expMatrix(1j*np.kron(sigmaQ, sigmaE)))
 
-def get_U_operator_altered(params, N_features, N_qubits, N_qubits_tgt, iqcail=False,iqcndse=False, iqcangle=False):
-    X = params[:N_features]
-    vw = params[N_features:]
-    #Montando os sigmas
-    if iqcail==True:
-        N_qubits_tgt=1
-        X_new=np.array(X)
-        w=np.array(vw)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-N_qubits_tgt) - N_features):
-                w=np.append(vw,0)
-                X_new=np.append(X_new,0)
-        
-        sigmaE=np.diag(w)
-
-    elif iqcndse==True:
-        atx=np.array(X)
-        atw=np.array(vw)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-N_qubits_tgt) - N_features):
-                atw=np.append(atw,0)
-                atx=np.append(atx,0)
-        X_new=np.matrix(atx)
-        w=np.matrix(atw)
-        # Ensure sigmaE is hermitian
-        sigmaE = X_new.T @ w + (X_new.T @ w).T
-    
-    elif iqcangle==True:
-        X_new=np.array(X)
-        # Verifica se precisa ajustar sigmaE
-        sigmaE = vw
-        # Calcula o operador unitário U
-        dim_circuit = 2 ** (N_qubits-1)
-        dim_sigmaE = sigmaE.shape[0]
-        #sigmaE = np.kron(np.eye(dim_circuit // dim_sigmaE), sigmaE)
-        sigmaE = np.kron(np.ones(dim_circuit // dim_sigmaE), sigmaE)
-        if np.log2(sigmaE.shape[0])%2!=0 and np.log2(sigmaE.shape[0])!=1: # Padding sigmaE
-            for k in range(2**(N_qubits-N_qubits_tgt) - sigmaE.shape[0]):
-                sigmaE=np.append(sigmaE,0)
-    
-    else:
-        w = np.array(vw)
-        X_new=np.array(X)
-        if np.log2(N_features)%2!=0 and np.log2(N_features)!=1:
-            for k in range(2**(N_qubits-N_qubits_tgt) - N_features):
-                w=np.append(w,0)
-                X_new=np.append(X_new,0)
-        sigmaE=np.diag(X_new)*w.T
-    
-    if N_qubits_tgt==1:
-        sigma_q_params=np.full(2**N_qubits_tgt,1)
-        sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=False)
-
-    else:
-        sigma_q_params=np.full(2**N_qubits_tgt,1)
-        sigmaQ=get_weighted_sigmaQ(sigma_q_params,iqcpq=True)
-
-    #Operador Unitário
-    #U_exp = np.matrix(expMatrix(1j*np.kron(sigmaQ,sigmaE)))
-    U = np.matrix(np.kron(np.identity(2**N_qubits_tgt),np.diag(np.cos(np.sqrt(3)*sigmaE))) + (1j/np.sqrt(3))*np.kron(sigmaQ,np.diag(np.sin(np.sqrt(3)*sigmaE))), dtype=complex)
-    return U
-
 def get_p(psi):
     """
         Creates a matrix out of psi and multiply it against its inverse, resulting in a column vector in the form [[alfa]. [beta]].
@@ -257,6 +195,26 @@ def get_negativity(rho, dim):
         See implementation at: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.negativity.html
     """
     return state_props.negativity(rho, dim)
+
+# Builds up the negativity list through the referred model
+def get_negativity_numpy(rho, dim):
+    """
+        Returns the Negativity associated with densitiy matrix rho.
+        See definition at: https://en.wikipedia.org/wiki/Negativity_(quantum_mechanics)
+    """
+    """
+        Returns the Negativity associated with densitiy matrix rho.
+        See definition at: https://en.wikipedia.org/wiki/Negativity_(quantum_mechanics)
+        See implementation at: https://toqito.readthedocs.io/en/latest/_autosummary/toqito.state_props.negativity.html
+    
+    return state_props.negativity(rho, dim)
+    """
+    
+    d1, d2 = dim
+    rho_reshaped = rho.reshape(d1, d2, d1, d2)
+    pt_rho = rho_reshaped.transpose(0, 3, 2, 1).reshape(d1*d2, d1*d2)
+    eigenvalues = np.linalg.eigvals(pt_rho)
+    return float(np.sum(np.abs(eigenvalues[eigenvalues < 0])))
 
 def get_entropy(rho):
     """
@@ -1635,7 +1593,9 @@ def execute_training_test_k_fold_two_classes(
                 print_avg_metric=True,
                 plot_boundary_decision_original=False,
                 plot_boundary_decision_normalized=False,
-                save_last_plot_boundary_decision_original=False):
+                save_last_plot_boundary_decision_original=False,
+                model=None,
+                string_database=None):
     """
         Executes IQC classifier against an dataset using classifier_function as classifier.
         As for datasets, we need it to return a pair X, y.
@@ -1706,16 +1666,16 @@ def execute_training_test_k_fold_two_classes(
                 Saves the decision boundary of the last fold using the original X_test (not normalized).
             """
             bound_deci = DecisionBoundaryDisplay.from_estimator(clf, X_test, alpha=0.5, response_method="predict")
-            bound_deci.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_pred, edgecolor="black")
-            plt.title("Predicted labels")
-            plt.savefig("boundary_decision_original.png")
+            bound_deci.ax_.scatter(X_test[:, 0], X_test[:, 1], c=y_test, edgecolor="black")
+            plt.title("True labels")
+            plt.savefig(f"{model}_{string_database}_boundary_decision_original.svg")
             plt.show()
 
         if plot_boundary_decision_normalized:
             # Debugando a fronteira de decisão
             boundary_decision = DecisionBoundaryDisplay.from_estimator(clf, normalized_X_test, alpha=0.5, response_method="predict")
             #boundary_decision.plot()
-            boundary_decision.ax_.scatter(normalized_X_test[:, 0], normalized_X_test[:, 1], c=y_pred, edgecolor="black")
+            boundary_decision.ax_.scatter(normalized_X_test[:, 0], normalized_X_test[:, 1], c=y_test, edgecolor="black")
             plt.show()
 
         weights = clf.estimators_[0].weight_ 
